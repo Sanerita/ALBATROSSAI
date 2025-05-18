@@ -1,17 +1,13 @@
-@tailwind base;
-@tailwind components;
+@import "tailwindcss/preflight";
 @tailwind utilities;
 
-
 @layer utilities {
-  /* Custom utilities */
   .custom-shadow {
-    @apply shadow-lg shadow-gold/20;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   }
 }
 
 @layer base {
-  /* Element styles */
   body {
     @apply min-h-screen bg-gray-50 text-gray-900;
   }
