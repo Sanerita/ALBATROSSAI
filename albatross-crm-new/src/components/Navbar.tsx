@@ -28,7 +28,7 @@ export default function Navbar() {
               <span className="sr-only">AlbatrossAI</span>
               <div className="flex items-center">
                 <Image
-                  src="/logo.png" // Update with your logo path
+                  src="/logo2.png" // Update with your logo path
                   alt="AlbatrossAI Logo"
                   width={40}
                   height={40}

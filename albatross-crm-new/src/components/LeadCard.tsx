@@ -7,7 +7,7 @@ export default function LeadCard({ lead }: { lead: Lead }) {
     const score = Math.min(
       (lead.budget / 2000) * 30 + // Budget factor
       (lead.urgency ? 40 : 0) +   // Urgency bonus
-      (lead.engagement * 10),     // Engagement score
+      (lead.engagement?? 0 * 10),     // Engagement score
       100
     )
   

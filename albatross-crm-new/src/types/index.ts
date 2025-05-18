@@ -12,6 +12,7 @@ export interface Lead {
   lastContact?: Date;
   replyCount?: number;
   energyScore?: number;
+  company?: string;
 }
 
 export function calculateEnergyScore(lead: Omit<Lead, 'id'>): number {

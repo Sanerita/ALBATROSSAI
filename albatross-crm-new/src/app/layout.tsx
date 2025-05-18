@@ -5,6 +5,7 @@ import type { Metadata, Viewport } from 'next'
 import { ReactNode } from 'react'
 import ClientWrapper from '../components/ClientWrapper'
 import Navbar from '../components/Navbar'
+import Footer from '../components/Footer'
 import { Inter } from 'next/font/google'
 
 const inter = Inter({
@@ -40,6 +41,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               {children}
             </div>
           </main>
+          <Footer />
         </ClientWrapper>
       </body>
     </html>
