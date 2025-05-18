@@ -1,36 +1,115 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AlbatrossAI CRM
+
+![AlbatrossAI Logo](public/logo.png) 
+
+A modern, AI-powered CRM solution built with Next.js, Tailwind CSS, and TypeScript.
+
+## Features
+
+- 🚀 AI-powered lead scoring and prioritization
+- 🎨 Drag-and-drop pipeline management
+- 📊 Real-time analytics dashboard
+- 📅 Built-in meeting scheduler
+- 🎯 Visual lead "energy" tracking
+- 🖥️ Responsive design for all devices
+
+## Tech Stack
+
+- **Framework**: Next.js 14 (App Router)
+- **Styling**: Tailwind CSS
+- **Type Checking**: TypeScript
+- **State Management**: Zustand
+- **Drag-and-Drop**: @dnd-kit
+- **UI Components**: ShadCN/ui
+- **Authentication**: Next-Auth
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
+- Node.js 18.x or higher
+- npm 9.x or higher
+- Git
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-username/albatross-crm.git
+   cd albatross-crm
+
+ 2. Install dependencies:
+
+npm install
+
+3. Set up environment variables:
+
+cp .env.example .env.local
+
+4. Edit .env.local with your credentials
+
+5. Development
+
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Open http://localhost:3000 in your browser.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Building for Production
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+npm run build
+npm start
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Project Structure
 
-## Learn More
+albatross-crm/
+├── app/                  # App router
+│   ├── layout.tsx        # Root layout
+│   ├── page.tsx          # Home page
+│   └── api/              # API routes
+├── components/           # Reusable components
+├── lib/                  # Utilities and helpers
+├── styles/               # Global styles
+├── public/               # Static assets
+├── types/                # TypeScript types
+└── tailwind.config.js    # Tailwind configuration
 
-To learn more about Next.js, take a look at the following resources:
+## Configuration
+Edit these files for customization:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+tailwind.config.js - Tailwind theme and plugins
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+app/layout.tsx - Main application layout
 
-## Deploy on Vercel
+lib/constants.ts - Default data and configurations
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Troubleshooting
+Common Issues
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+TypeScript Errors:
+npm install --save-dev @types/react @types/react-dom @types/node
+
+Turbopack Errors:
+npm run dev -- --no-turbo
+
+Styling Not Applying:
+Verify globals.css imports Tailwind directives
+Check tailwind.config.js content paths
+
+## Contributing
+Fork the project
+
+Create your feature branch (git checkout -b feature/AmazingFeature)
+
+Commit your changes (git commit -m 'Add some AmazingFeature')
+
+Push to the branch (git push origin feature/AmazingFeature)
+
+Open a Pull Request
+
+## License
+Distributed under the MIT License. See LICENSE for more information.
+
+## Contact
+Sanelisiwe Sileku - @Sanelisiwe71701 - sanelisiwe.sileku@gmail.com
+
+Project Link: https://github.com/sanerita/ALBATROSSAI
+
