@@ -2,6 +2,7 @@ export interface Lead {
     id: string
   name: string
   email: string
+  company?: string;
   budget: number
   status: 'New' | 'Contacted' | 'Closed' // Enum-like status
   urgency: boolean
