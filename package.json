@@ -5,6 +5,7 @@
     "@dnd-kit/utilities": "^3.2.2"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.7",
     "@types/node": "^22.15.18"
   }
 }
