@@ -4,13 +4,20 @@ import { CSS } from '@dnd-kit/utilities'
 import LeadCard from './LeadCard'
 import { Lead } from '@/types'
 
-interface PipelineColumnProps {
-  status: string
+export interface PipelineColumnProps {
+  status: 'New' | 'Contacted' | 'Closed' // More specific type
   leads: Lead[]
 }
 
 export default function PipelineColumn({ status, leads }: PipelineColumnProps) {
-  const { setNodeRef } = useSortable({
+  const {
+    setNodeRef,
+    attributes,
+    listeners,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
     id: status,
     data: {
       type: 'column',
@@ -18,22 +25,31 @@ export default function PipelineColumn({ status, leads }: PipelineColumnProps) {
     },
   })
 
-  // Status-specific styling
-  const statusStyles: Record<string, string> = {
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  // Status-specific styling with type safety
+  const statusStyles = {
     New: 'border-blue-200 bg-blue-50',
     Contacted: 'border-purple-200 bg-purple-50',
     Closed: 'border-green-200 bg-green-50',
-  }
+  } as const
 
-  const statusColors: Record<string, string> = {
+  const statusColors = {
     New: 'text-blue-600',
     Contacted: 'text-purple-600',
     Closed: 'text-green-600',
-  }
+  } as const
 
   return (
     <div
       ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
       className={`flex flex-col w-full max-w-xs border rounded-lg p-4 ${statusStyles[status]}`}
     >
       <div className="flex items-center justify-between mb-4">
@@ -58,7 +74,10 @@ export default function PipelineColumn({ status, leads }: PipelineColumnProps) {
       </div>
 
       {status === 'New' && (
-        <button className="mt-4 w-full py-2 bg-gold hover:bg-gold-dark text-white rounded-md transition-colors">
+        <button
+          className="mt-4 w-full py-2 bg-gold hover:bg-gold-dark text-white rounded-md transition-colors"
+          onClick={() => console.log('Add lead clicked')}
+        >
           + Add Lead
         </button>
       )}

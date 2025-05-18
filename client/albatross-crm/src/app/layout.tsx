@@ -1,9 +1,10 @@
 import '../styles/globals.css'
+import { ReactNode, useState } from 'react'
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: ReactNode
 }) {
   return (
     <html lang="en">
