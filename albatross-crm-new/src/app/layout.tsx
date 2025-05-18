@@ -1,4 +1,5 @@
 import './globals.css'
+import '/public/styles.css'
 import type { Metadata, Viewport } from 'next'
 import { ReactNode } from 'react'
 import ClientWrapper from '../components/ClientWrapper'
