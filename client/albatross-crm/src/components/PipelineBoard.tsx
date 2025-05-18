@@ -1,6 +1,6 @@
 'use client'
-import { DndContext, DragEndEvent } from '@dnd-kit/core'
-import { SortableContext, arrayMove } from '@dnd-kit/sortable'
+import { DndContext, DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, arrayMove } from '@dnd-kit/sortable';
 import { useState } from 'react'
 import PipelineColumn from './PipelineColumn'
 import { Lead } from '@/types'
