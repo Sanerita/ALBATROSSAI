@@ -1,14 +1,24 @@
-import '../styles/globals.css'
-import { ReactNode, useState } from 'react'
+import '../styles/globals.css' 
+import type { Metadata } from 'next'
+import { ReactNode } from 'react'
+import ClientWrapper from '../components/ClientWrapper'
 
-export default function RootLayout({
-  children,
-}: {
-  children: ReactNode
-}) {
+export const metadata: Metadata = {
+  title: 'AlbatrossAI CRM',
+  description: 'Your sales pipeline management solution',
+  icons: {
+    icon: '/favicon.ico',
+  },
+}
+
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-gray-50">{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body className="min-h-screen bg-gray-50 antialiased">
+        <ClientWrapper>
+          {children}
+        </ClientWrapper>
+      </body>
     </html>
   )
 }
