@@ -2,10 +2,10 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import LeadCard from './LeadCard'
-import { Lead } from '@/types'
+import type { Lead } from '@/types'
 
-export interface PipelineColumnProps {
-  status: 'New' | 'Contacted' | 'Closed' // More specific type
+interface PipelineColumnProps {
+  status: 'New' | 'Contacted' | 'Closed'
   leads: Lead[]
 }
 
@@ -31,18 +31,12 @@ export default function PipelineColumn({ status, leads }: PipelineColumnProps) {
     opacity: isDragging ? 0.5 : 1,
   }
 
-  // Status-specific styling with type safety
-  const statusStyles = {
-    New: 'border-blue-200 bg-blue-50',
-    Contacted: 'border-purple-200 bg-purple-50',
-    Closed: 'border-green-200 bg-green-50',
-  } as const
-
-  const statusColors = {
-    New: 'text-blue-600',
-    Contacted: 'text-purple-600',
-    Closed: 'text-green-600',
-  } as const
+  const statusColors: Record<string, string> = {
+    'Lead': 'text-blue-500',
+    'Contacted': 'text-yellow-600',
+    'Closed': 'text-green-500',
+    // add other statuses and colors
+  };
 
   return (
     <div
@@ -50,7 +44,7 @@ export default function PipelineColumn({ status, leads }: PipelineColumnProps) {
       style={style}
       {...attributes}
       {...listeners}
-      className={`flex flex-col w-full max-w-xs border rounded-lg p-4 ${statusStyles[status]}`}
+      className={`flex flex-col w-full max-w-xs border rounded-lg p-4`}
     >
       <div className="flex items-center justify-between mb-4">
         <h2 className={`font-bold text-lg ${statusColors[status]}`}>
