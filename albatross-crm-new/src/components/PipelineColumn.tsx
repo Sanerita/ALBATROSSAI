@@ -2,7 +2,7 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import LeadCard from './LeadCard'
-import type { Lead } from '@/types'
+import type { Lead } from '../../types'
 
 interface PipelineColumnProps {
   status: 'New' | 'Contacted' | 'Closed'

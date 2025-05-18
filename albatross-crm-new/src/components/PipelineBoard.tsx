@@ -1,9 +1,9 @@
 'use client'
 import { DndContext, DragEndEvent } from '@dnd-kit/core';
-import { SortableContext, arrayMove } from '@dnd-kit/sortable';
 import { useState } from 'react'
-import PipelineColumn from './PipelineColumn'
-import { Lead } from '@/types'
+import { arrayMove } from '@dnd-kit/sortable';
+import PipelineColumn from './PipelineColumn';
+import { Lead } from '../../types';
 
 const statuses = ['New', 'Contacted', 'Closed'] as const
 

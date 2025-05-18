@@ -1,5 +1,5 @@
 'use client'
-import { Lead } from '@/types'
+import { Lead } from '../../types'
 
 
 export default function LeadCard({ lead }: { lead: Lead }) {
