@@ -1,7 +1,7 @@
 
 'use client'
 
-import { Lead } from '../../types'
+import { Lead } from '../types'
 import { useState } from 'react'
 
 export function SchedulerModal({ lead }: { lead: Lead }) {

@@ -1,22 +1,24 @@
-import { LeadsTable } from '@/components/LeadsTable';
-import { StatsCards } from '@/components/StatsCards';
-import { RecentActivity } from '@/components/RecentActivity';
-import { Suspense } from 'react';
-import { Skeleton } from '@/components/ui/skeleton';
+// app/dashboard/page.tsx
+import { Suspense } from 'react'
+import { StatsCards } from '@/components/StatsCards'
+import { LeadsTable } from '@/components/LeadsTable'
+import { RecentActivity } from '@/components/RecentActivity'
+import { Celebration } from '@/components/Celebration'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export default function DashboardPage() {
   return (
-    <div className="bg-[#dcae3e] min-h-[calc(100vh-4rem)] pt-4 pb-8 px-4 md:px-6">
+    <div className="space-y-6">
       {/* Header */}
-      <header className="mb-6 md:mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-800 mt-1 md:mt-2 text-sm md:text-base">
+      <div className="space-y-2">
+        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <p className="text-gray-800">
           Welcome back! Here's what's happening with your leads.
         </p>
-      </header>
+      </div>
 
-      {/* Stats Cards with Suspense */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 md:mb-8">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Suspense fallback={
           <>
             {[...Array(4)].map((_, i) => (
@@ -31,8 +33,8 @@ export default function DashboardPage() {
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Leads Table */}
-        <div className="lg:col-span-2 bg-white rounded-lg shadow-lg p-4 md:p-6">
-          <h2 className="text-lg md:text-xl font-semibold text-gray-800 mb-3 md:mb-4">
+        <div className="lg:col-span-2 bg-white rounded-lg shadow p-4 md:p-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">
             Recent Leads
           </h2>
           <Suspense fallback={
@@ -48,8 +50,8 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Activity */}
-        <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
-          <h2 className="text-lg md:text-xl font-semibold text-gray-800 mb-3 md:mb-4">
+        <div className="bg-white rounded-lg shadow p-4 md:p-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">
             Activity Feed
           </h2>
           <Suspense fallback={
@@ -63,6 +65,9 @@ export default function DashboardPage() {
           </Suspense>
         </div>
       </div>
+
+      {/* Celebration Effects (hidden until triggered) */}
+      <Celebration />
     </div>
-  );
+  )
 }

@@ -1,12 +1,12 @@
-import './globals.css'
+// app/layout.tsx
 import '/public/styles.css'
+import './globals.css'
 import type { Metadata, Viewport } from 'next'
 import { ReactNode } from 'react'
 import ClientWrapper from '../components/ClientWrapper'
 import Navbar from '../components/Navbar'
 import { Inter } from 'next/font/google'
 
-// Load optimized font
 const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
@@ -26,17 +26,19 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#12113d', // Your navy color
-};
+  themeColor: '#12113d',
+}
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className={`${inter.variable}`}>
-      <body className="min-h-screen bg-gray-50 antialiased">
+      <body className="min-h-screen bg-[#dcae3e] antialiased">
         <ClientWrapper>
           <Navbar />
-          <main className="pt-16"> {/* Offset for fixed navbar */}
-            {children}
+          <main className="pt-16 pb-8">
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              {children}
+            </div>
           </main>
         </ClientWrapper>
       </body>

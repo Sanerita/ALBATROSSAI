@@ -1,14 +1,34 @@
-// app/api/leads/route.ts
+// src/app/api/leads/route.ts
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/db' // Your database client
+import { db } from '@/lib/db'
+import { Lead, calculateEnergyScore } from '@/types' // Ensure this path is correct
 
 export async function GET() {
-  const leads = await db.lead.findMany()
-  return NextResponse.json(leads)
+  try {
+    const leads = await db.lead.findMany()
+    return NextResponse.json(leads)
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to fetch leads' },
+      { status: 500 }
+    )
+  }
 }
 
 export async function POST(request: Request) {
-  const data = await request.json()
-  const lead = await db.lead.create({ data })
-  return NextResponse.json(lead)
+  try {
+    const data: Omit<Lead, 'id'> = await request.json()
+    const lead = await db.lead.create({ 
+      data: {
+        ...data,
+        energyScore: calculateEnergyScore(data)
+      }
+    })
+    return NextResponse.json(lead)
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to create lead' },
+      { status: 500 }
+    )
+  }
 }
