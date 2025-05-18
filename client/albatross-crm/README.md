@@ -109,7 +109,7 @@ Open a Pull Request
 Distributed under the MIT License. See LICENSE for more information.
 
 ## Contact
-Sanelisiwe Sileku - @Sanelisiwe71701 - sanelisiwe.sileku@gmail.com
+Sanelisiwe Sileku - [@Sanelisiwe71701](https://x.com/Sanelisiwe71701) - sanelisiwe.sileku@gmail.com
 
 Project Link: https://github.com/sanerita/ALBATROSSAI
 
