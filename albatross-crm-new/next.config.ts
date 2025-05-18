@@ -14,23 +14,14 @@ const nextConfig: NextConfig = {
 
   // WebSocket/HMR Fixes
   experimental: {},
-  webpack: (config, { dev, isServer }) => {
-    // Custom Webpack configurations can go here
-
+  webpack: (config) => {
     // Path aliases
     config.resolve.alias = {
       ...config.resolve.alias,
       '@components': './src/components',
       '@lib': './src/lib',
     };
-
-    // Improved HMR in cloud environments
-    config.watchOptions = {
-      poll: 1000,
-      aggregateTimeout: 300,
-      ignored: /node_modules/,
-    };
-
+    
     return config;
   },
 

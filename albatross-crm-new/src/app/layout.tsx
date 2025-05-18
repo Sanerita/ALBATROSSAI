@@ -31,7 +31,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className={`${inter.variable}`}>
-      <body className="min-h-screen bg-gray-50 antialiased" style={{ backgroundColor: 'red' }}>
+      <body className="min-h-screen bg-gray-50 antialiased">
         <ClientWrapper>
           <Navbar />
           <main className="pt-16"> {/* Offset for fixed navbar */}
