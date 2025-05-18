@@ -8,8 +8,31 @@ const nextConfig: NextConfig = {
     "localhost:3000",
     "localhost:3002",
     "localhost:3004",
-    "3003-firebase-albatrossaigit-1747520015427.cluster-vpxjqdstfzgs6qeiaf7rdlsqrc.cloudworkstations.dev"
+    "3003-firebase-albatrossaigit-1747520015427.cluster-vpxjqdstfzgs6qeiaf7rdlsqrc.cloudworkstations.dev",
+    "3000-firebase-albatrossaigit-1747520015427.cluster-vpxjqdstfzgs6qeiaf7rdlsqrc.cloudworkstations.dev"
   ],
+
+  // WebSocket/HMR Fixes
+  experimental: {},
+  webpack: (config, { dev, isServer }) => {
+    // Custom Webpack configurations can go here
+
+    // Path aliases
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@components': './src/components',
+      '@lib': './src/lib',
+    };
+
+    // Improved HMR in cloud environments
+    config.watchOptions = {
+      poll: 1000,
+      aggregateTimeout: 300,
+      ignored: /node_modules/,
+    };
+
+    return config;
+  },
 
   // Production CORS configuration
   async headers() {
@@ -40,17 +63,6 @@ const nextConfig: NextConfig = {
         ],
       }
     ] : [];
-  },
-
-
-  // Modern aliasing (better than Turbopack approach)
-  webpack: (config) => {
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      '@components': './src/components',
-      '@lib': './src/lib',
-    };
-    return config;
   },
 };
 
