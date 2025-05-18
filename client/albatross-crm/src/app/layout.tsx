@@ -1,4 +1,4 @@
-import '../styles/globals.css'
+import './globals.css'
 import type { Metadata } from 'next'
 import { ReactNode } from 'react'
 import ClientWrapper from '../components/ClientWrapper'
