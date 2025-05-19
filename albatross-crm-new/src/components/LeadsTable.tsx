@@ -1,10 +1,11 @@
 'use client'
 
+import React from 'react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Lead, LeadStatus } from '@/types'
-import { ChevronDown, ChevronUp, ArrowUpDown, MoreHorizontal, Mail, User, Clock, CheckCircle } from 'lucide-react'
+import { ChevronDown, ChevronUp, MoreHorizontal, Mail, User, Clock, CheckCircle } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Badge } from '@/components/ui/badge'
 
@@ -17,10 +18,22 @@ interface LeadsTableProps {
 type SortKey = keyof Pick<Lead, 'name' | 'company' | 'budget' | 'score' | 'lastContact'>
 type SortDirection = 'asc' | 'desc'
 
-const statusIcons = {
-  new: <Clock className="h-4 w-4" />,
-  contacted: <Mail className="h-4 w-4" />,
-  closed: <CheckCircle className="h-4 w-4" />
+interface StatusIcons {
+  New: React.ReactNode
+  Contacted: React.ReactNode
+  Closed: React.ReactNode
+}
+
+const statusIcons: StatusIcons = {
+  New: <Clock className="h-4 w-4" />,
+  Contacted: <Mail className="h-4 w-4" />,
+  Closed: <CheckCircle className="h-4 w-4" />
+}
+
+const statusVariants: Record<LeadStatus, 'secondary' | 'outline' | 'default'> = {
+  New: 'secondary',
+  Contacted: 'outline',
+  Closed: 'default'
 }
 
 export function LeadsTable({ leads, onStatusChange, onRowClick }: LeadsTableProps) {
@@ -51,15 +64,6 @@ export function LeadsTable({ leads, onStatusChange, onRowClick }: LeadsTableProp
   const filteredLeads = filterStatus === 'all' 
     ? sortedLeads 
     : sortedLeads.filter(lead => lead.status === filterStatus)
-
-  const getStatusVariant = (status: LeadStatus) => {
-    switch (status) {
-      case 'new': return 'secondary'
-      case 'contacted': return 'outline'
-      case 'closed': return 'default'
-      default: return 'outline'
-    }
-  }
 
   return (
     <div className="space-y-4">
@@ -185,14 +189,6 @@ export function LeadsTable({ leads, onStatusChange, onRowClick }: LeadsTableProp
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Badge variant={getStatusVariant(lead.status)} className="capitalize">
-                        {statusIcons[lead.status]}
-                        {lead.status}
-                      </Badge>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
                       <div className="w-16 bg-secondary rounded-full h-2">
                         <div 
                           className={`h-2 rounded-full ${
@@ -204,6 +200,12 @@ export function LeadsTable({ leads, onStatusChange, onRowClick }: LeadsTableProp
                       </div>
                       <span className="text-sm text-muted-foreground">{lead.score}%</span>
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={statusVariants[lead.status]} className="capitalize">
+                      {statusIcons[lead.status]}
+                      {lead.status}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     {lead.lastContact 

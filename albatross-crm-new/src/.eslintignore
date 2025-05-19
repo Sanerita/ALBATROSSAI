@@ -1,0 +1,13 @@
+# Dependency directories
+node_modules/
+
+# Next.js build output
+.next/
+
+# Public assets directory
+public/
+
+# Optional: other build or output directories
+# dist/
+# build/
+src/generated/prisma/
