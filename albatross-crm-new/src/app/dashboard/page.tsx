@@ -24,16 +24,39 @@ export default function DashboardPage() {
   const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [triggerCelebration, setTriggerCelebration] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true)
+        setError(null)
+        
         const [leadsRes, meetingsRes, activitiesRes] = await Promise.all([
           fetch('/api/leads'),
           fetch('/api/meetings'),
           fetch('/api/activities')
         ])
+
+        // Check for HTTP errors
+        if (!leadsRes.ok) throw new Error('Failed to fetch leads')
+        if (!meetingsRes.ok) throw new Error('Failed to fetch meetings')
+        if (!activitiesRes.ok) throw new Error('Failed to fetch activities')
+
+        // Verify content type is JSON
+        const leadsContentType = leadsRes.headers.get('content-type')
+        const meetingsContentType = meetingsRes.headers.get('content-type')
+        const activitiesContentType = activitiesRes.headers.get('content-type')
+
+        if (!leadsContentType?.includes('application/json')) {
+          throw new Error('Leads API did not return JSON')
+        }
+        if (!meetingsContentType?.includes('application/json')) {
+          throw new Error('Meetings API did not return JSON')
+        }
+        if (!activitiesContentType?.includes('application/json')) {
+          throw new Error('Activities API did not return JSON')
+        }
 
         const [leadsData, meetingsData, activitiesData] = await Promise.all([
           leadsRes.json(),
@@ -60,6 +83,7 @@ export default function DashboardPage() {
         setActivities(activitiesData)
       } catch (error) {
         console.error('Error fetching data:', error)
+        setError(error instanceof Error ? error.message : 'An unknown error occurred')
       } finally {
         setIsLoading(false)
       }
@@ -89,7 +113,7 @@ export default function DashboardPage() {
       )
     )
 
-    if (newStatus === 'closed') {
+    if (newStatus === 'Closed') {
       setTriggerCelebration(true)
       setTimeout(() => setTriggerCelebration(false), 3000)
     }
@@ -99,7 +123,7 @@ export default function DashboardPage() {
     const leadWithScore: Lead = {
       ...newLead,
       id: uuidv4(),
-      status: 'new',
+      status: 'New',
       score: calculateLeadScore(newLead)
     }
     setLeads(prevLeads => [...prevLeads, leadWithScore])
@@ -123,9 +147,64 @@ export default function DashboardPage() {
       isSameDay(meeting.date, new Date())
     ).length,
     conversionRate: leads.length > 0 
-      ? Math.round((leads.filter(lead => lead.status === 'closed').length / leads.length) * 100)
+      ? Math.round((leads.filter(lead => lead.status === 'Closed').length / leads.length) * 100)
       : 0
   }
+
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative max-w-md">
+          <strong className="font-bold">Error!</strong>
+          <span className="block sm:inline"> {error}</span>
+          <button 
+            className="mt-2 bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm"
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // In your dashboard page component
+if (isLoading) {
+  return (
+    <div className="flex items-center justify-center h-screen">
+      <div className="space-y-4">
+        <Skeleton className="h-12 w-full" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-32 rounded-lg" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Skeleton className="lg:col-span-2 h-96 rounded-lg" />
+          <Skeleton className="h-96 rounded-lg" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+if (error) {
+  return (
+    <div className="flex flex-col items-center justify-center h-screen">
+      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded max-w-md">
+        <strong>Error loading data:</strong>
+        <p className="mt-2">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Retry
+        </button>
+      </div>
+    </div>
+  )
+}
 
   return (
     <div className="space-y-6">

@@ -9,10 +9,6 @@
 }
 
 @layer base {
-  body {
-    @apply min-h-screen bg-gray-50 text-gray-900;
-  }
-  
   h1 {
     @apply text-3xl font-bold text-navy;
   }
