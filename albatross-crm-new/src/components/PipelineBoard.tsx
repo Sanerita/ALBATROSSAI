@@ -1,58 +1,50 @@
-// src/components/PipelineBoard.tsx
-'use client';
-import { DndContext, DragEndEvent } from '@dnd-kit/core';
-import { useState } from 'react';
-import { arrayMove } from '@dnd-kit/sortable';
-import PipelineColumn from './PipelineColumn';
-import { Lead, LeadStatus } from '../types';
+'use client'
 
-const statuses: LeadStatus[] = ['New', 'Contacted', 'Closed'];
+import { DndContext, DragEndEvent, DragOverlay } from '@dnd-kit/core'
+import { useState } from 'react'
+import { arrayMove } from '@dnd-kit/sortable'
+import PipelineColumn from './PipelineColumn'
+import { Lead, LeadStatus } from '../types'
+import { DraggableLeadCard } from '../components/DraggableLeadCard'
 
-const initialLeads: Lead[] = [
-  {
-    id: '1',
-    name: 'Lead 1',
-    email: 'lead1@example.com',
-    budget: 10000,
-    status: 'New',
-    urgency: true,
-    engagement: 2,
-    lastContact: new Date(),
-    replyCount: 0
-  },
-  // ... other leads
-];
+interface PipelineBoardProps {
+  leads: Lead[]
+  onStatusChange: (leadId: string, newStatus: LeadStatus) => void
+}
 
-export default function PipelineBoard() {
-  const [leads, setLeads] = useState<Lead[]>(initialLeads);
+export default function PipelineBoard({ leads, onStatusChange }: PipelineBoardProps) {
+  const statuses: LeadStatus[] = ['New', 'Contacted', 'Closed'] // Capitalized
+  const [activeLead, setActiveLead] = useState<Lead | null>(null)
+
+  const handleDragStart = (event: any) => {
+    if (event.active.data.current?.type === 'lead') {
+      setActiveLead(event.active.data.current.lead)
+    }
+  }
 
   const handleDragEnd = (event: DragEndEvent) => {
-    const {active, over} = event;
+    const { active, over } = event
     
-    if (!over) return;
+    if (!over) {
+      setActiveLead(null)
+      return
+    }
     
     if (active.data.current?.type === 'lead' && over.data.current?.type === 'column') {
-      const leadId = active.id.toString();
-      const newStatus = over.data.current.status as LeadStatus;
-      
-      setLeads(leads => leads.map(lead => 
-        lead.id === leadId ? {...lead, status: newStatus} : lead
-      ));
-      return;
+      const leadId = active.id.toString()
+      const newStatus = over.data.current.status as LeadStatus
+      onStatusChange(leadId, newStatus)
     }
     
-    if (active.id !== over.id) {
-      setLeads(leads => {
-        const oldIndex = leads.findIndex(lead => lead.id === active.id.toString());
-        const newIndex = leads.findIndex(lead => lead.id === over.id.toString());
-        return arrayMove(leads, oldIndex, newIndex);
-      });
-    }
-  };
+    setActiveLead(null)
+  }
 
   return (
-    <DndContext onDragEnd={handleDragEnd}>
-      <div className="flex gap-4 p-4">
+    <DndContext 
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="flex gap-4 p-4 overflow-x-auto h-full">
         {statuses.map((status) => (
           <PipelineColumn
             key={status}
@@ -61,6 +53,20 @@ export default function PipelineBoard() {
           />
         ))}
       </div>
+
+      <DragOverlay>
+        {activeLead ? (
+          <div className="border rounded-lg p-4 bg-white shadow-lg w-[300px]">
+            <h3 className="font-medium">{activeLead.name}</h3>
+            <p className="text-sm text-muted-foreground">
+              Budget: {new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+              }).format(activeLead.budget)}
+            </p>
+          </div>
+        ) : null}
+      </DragOverlay>
     </DndContext>
-  );
+  )
 }

@@ -2,7 +2,12 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 
-export default function AddLeadModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
+interface AddLeadModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (formData: { name: string, email: string, budget: number, notes: string }) => void;
+}
+export default function AddLeadModal({ isOpen, onClose, onSubmit }: AddLeadModalProps) {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -48,7 +53,7 @@ export default function AddLeadModal({ isOpen, onClose }: { isOpen: boolean, onC
               </button>
               <button
                 onClick={() => {
-                  // Add lead logic
+                  onSubmit(formData);
                   onClose()
                 }}
                 className="px-4 py-2 bg-gold text-white font-medium rounded-md hover:bg-opacity-90"

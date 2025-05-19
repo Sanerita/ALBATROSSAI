@@ -1,5 +1,6 @@
-// app/dashboard/page.tsx
-import { Suspense } from 'react'
+'use client'
+
+import { useState, useEffect } from 'react'
 import { StatsCards } from '@/components/StatsCards'
 import { LeadsTable } from '@/components/LeadsTable'
 import { RecentActivity } from '@/components/RecentActivity'
@@ -7,11 +8,127 @@ import { Celebration } from '@/components/Celebration'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { PlusIcon, CalendarIcon, HighlighterIcon } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Lead, Meeting, LeadStatus } from '@/types'
+import AddLeadModal from '@/components/AddLeadModal'
+import { ScheduleMeetingModal } from '@/components/ScheduleMeetingModal'
+import { v4 as uuidv4 } from 'uuid'
+import { isSameDay } from 'date-fns'
 
 export default function DashboardPage() {
+  const router = useRouter()
+  const [leads, setLeads] = useState<Lead[]>([])
+  const [meetings, setMeetings] = useState<Meeting[]>([])
+  const [activities, setActivities] = useState<any[]>([])
+  const [showAddLeadModal, setShowAddLeadModal] = useState(false)
+  const [showScheduleModal, setShowScheduleModal] = useState(false)
+  const [triggerCelebration, setTriggerCelebration] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true)
+        const [leadsRes, meetingsRes, activitiesRes] = await Promise.all([
+          fetch('/api/leads'),
+          fetch('/api/meetings'),
+          fetch('/api/activities')
+        ])
+
+        const [leadsData, meetingsData, activitiesData] = await Promise.all([
+          leadsRes.json(),
+          meetingsRes.json(),
+          activitiesRes.json()
+        ])
+
+        const processedLeads: Lead[] = leadsData.map((lead: any) => ({
+          ...lead,
+          id: lead.id || uuidv4(),
+          status: lead.status as LeadStatus,
+          lastContact: lead.lastContact ? new Date(lead.lastContact) : undefined,
+          score: calculateLeadScore(lead)
+        }))
+
+        const processedMeetings: Meeting[] = meetingsData.map((meeting: any) => ({
+          ...meeting,
+          date: new Date(meeting.date),
+          createdAt: new Date(meeting.createdAt || Date.now())
+        }))
+
+        setLeads(processedLeads)
+        setMeetings(processedMeetings)
+        setActivities(activitiesData)
+      } catch (error) {
+        console.error('Error fetching data:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
+
+  const calculateLeadScore = (lead: Partial<Lead>): number => {
+    let score = 0
+    score += Math.min((lead.budget || 0) / 2000 * 30, 30)
+    if (lead.urgency) score += 40
+    score += (lead.engagement || 0) * 10
+    return Math.min(score, 100)
+  }
+
+  const handleLeadStatusChange = (leadId: string, newStatus: LeadStatus) => {
+    setLeads(prevLeads =>
+      prevLeads.map(lead =>
+        lead.id === leadId 
+          ? { 
+              ...lead, 
+              status: newStatus,
+              score: calculateLeadScore({ ...lead, status: newStatus })
+            } 
+          : lead
+      )
+    )
+
+    if (newStatus === 'closed') {
+      setTriggerCelebration(true)
+      setTimeout(() => setTriggerCelebration(false), 3000)
+    }
+  }
+
+  const handleAddLead = (newLead: { name: string; email: string; budget: number; notes: string }) => {
+    const leadWithScore: Lead = {
+      ...newLead,
+      id: uuidv4(),
+      status: 'new',
+      score: calculateLeadScore(newLead)
+    }
+    setLeads(prevLeads => [...prevLeads, leadWithScore])
+    setShowAddLeadModal(false)
+  }
+
+  const handleScheduleMeeting = (meeting: Omit<Meeting, 'id' | 'createdAt'>) => {
+    const newMeeting: Meeting = {
+      ...meeting,
+      id: uuidv4(),
+      createdAt: new Date()
+    }
+    setMeetings(prev => [...prev, newMeeting])
+    setShowScheduleModal(false)
+  }
+
+  const stats = {
+    totalLeads: leads.length,
+    hotLeads: leads.filter(lead => lead.score > 75).length,
+    meetingsToday: meetings.filter(meeting => 
+      isSameDay(meeting.date, new Date())
+    ).length,
+    conversionRate: leads.length > 0 
+      ? Math.round((leads.filter(lead => lead.status === 'closed').length / leads.length) * 100)
+      : 0
+  }
+
   return (
     <div className="space-y-6">
-      {/* Header with quick actions */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="space-y-2">
           <h1 className="text-2xl font-bold text-gray-900">AlbatrossAI CRM</h1>
@@ -20,33 +137,34 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button className="bg-teal-500 hover:bg-teal-600">
+          <Button 
+            className="bg-teal-500 hover:bg-teal-600"
+            onClick={() => setShowAddLeadModal(true)}
+          >
             <PlusIcon className="mr-2 h-4 w-4" />
             Add Lead
           </Button>
-          <Button variant="outline">
+          <Button 
+            variant="outline"
+            onClick={() => setShowScheduleModal(true)}
+          >
             <CalendarIcon className="mr-2 h-4 w-4" />
             View Schedule
           </Button>
         </div>
       </div>
 
-      {/* Stats Cards with energy metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Suspense fallback={
-          <>
-            {[...Array(4)].map((_, i) => (
-              <Skeleton key={i} className="h-32 rounded-lg bg-[#f5d67a]" />
-            ))}
-          </>
-        }>
-          <StatsCards />
-        </Suspense>
+        {isLoading ? (
+          [...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-32 rounded-lg bg-[#f5d67a]" />
+          ))
+        ) : (
+          <StatsCards stats={stats} />
+        )}
       </div>
 
-      {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Leads Table with energy meter */}
         <div className="lg:col-span-2 bg-white rounded-lg shadow p-4 md:p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold text-gray-800">
@@ -69,83 +187,117 @@ export default function DashboardPage() {
               </span>
             </div>
           </div>
-          <Suspense fallback={
+          {isLoading ? (
             <div className="space-y-4">
               <Skeleton className="h-12 w-full bg-[#f5d67a]" />
               {[...Array(5)].map((_, i) => (
                 <Skeleton key={i} className="h-16 w-full bg-[#f5d67a]" />
               ))}
             </div>
-          }>
-            <LeadsTable />
-          </Suspense>
+          ) : (
+            <LeadsTable 
+              leads={leads} 
+              onStatusChange={handleLeadStatusChange}
+            />
+          )}
         </div>
 
-        {/* Recent Activity with scheduling highlights */}
         <div className="space-y-6">
           <div className="bg-white rounded-lg shadow p-4 md:p-6">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">
               Scheduled Meetings
             </h2>
-            <Suspense fallback={
+            {isLoading ? (
               <div className="space-y-4">
                 {[...Array(3)].map((_, i) => (
                   <Skeleton key={i} className="h-20 w-full bg-[#f5d67a]" />
                 ))}
               </div>
-            }>
+            ) : (
               <div className="space-y-3">
-                <div className="p-3 border rounded-lg hover:bg-teal-50 transition-colors">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-medium">Maria Lopez</h3>
-                      <p className="text-sm text-gray-600">Project Kickoff</p>
+                {meetings.slice(0, 3).map(meeting => {
+                  const lead = leads.find(l => l.id === meeting.leadId)
+                  return (
+                    <div 
+                      key={meeting.id}
+                      className="p-3 border rounded-lg hover:bg-teal-50 transition-colors"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-medium">{lead?.name || 'Unknown Lead'}</h3>
+                          <p className="text-sm text-gray-600">{meeting.title}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs px-2 py-1 bg-teal-100 text-teal-800 rounded-full">
+                            {meeting.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-xs"
+                            onClick={() => router.push(`/meeting/${meeting.id}`)}
+                          >
+                            Join
+                          </Button>
+                        </div>
+                      </div>
+                      {lead && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className="text-xs">Energy:</span>
+                          <div className="relative w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div 
+                              className={`absolute top-0 left-0 h-full ${
+                                lead.score > 75 ? 'bg-green-500' :
+                                lead.score > 50 ? 'bg-yellow-500' : 'bg-red-500'
+                              }`}
+                              style={{ width: `${lead.score}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-xs font-medium">{lead.score}%</span>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs px-2 py-1 bg-teal-100 text-teal-800 rounded-full">
-                        Today, 2:00 PM
-                      </span>
-                      <Button variant="outline" size="sm" className="text-xs">
-                        Join
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="mt-2 flex items-center gap-2">
-                    <span className="text-xs">Energy:</span>
-                    <div className="relative w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div 
-                        className="absolute top-0 left-0 h-full bg-green-500" 
-                        style={{ width: '80%' }}
-                      ></div>
-                    </div>
-                    <span className="text-xs font-medium">80%</span>
-                  </div>
-                </div>
-                {/* More meeting items would go here */}
+                  )
+                })}
+                {meetings.length === 0 && (
+                  <p className="text-center text-gray-500 py-4">
+                    No meetings scheduled
+                  </p>
+                )}
               </div>
-            </Suspense>
+            )}
           </div>
 
-          {/* Recent Activity */}
           <div className="bg-white rounded-lg shadow p-4 md:p-6">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">
               Activity Feed
             </h2>
-            <Suspense fallback={
+            {isLoading ? (
               <div className="space-y-4">
                 {[...Array(5)].map((_, i) => (
                   <Skeleton key={i} className="h-16 w-full bg-[#f5d67a]" />
                 ))}
               </div>
-            }>
-              <RecentActivity />
-            </Suspense>
+            ) : (
+              <RecentActivity activities={activities} />
+            )}
           </div>
         </div>
       </div>
 
-      {/* Celebration Effects (hidden until triggered) */}
-      <Celebration />
+      <AddLeadModal
+        isOpen={showAddLeadModal}
+        onClose={() => setShowAddLeadModal(false)}
+        onSubmit={handleAddLead}
+      />
+      <ScheduleMeetingModal
+        open={showScheduleModal}
+        onClose={() => setShowScheduleModal(false)}
+        onSubmit={handleScheduleMeeting}
+        leads={leads}
+      />
+
+      <Celebration trigger={triggerCelebration} />
     </div>
   )
 }

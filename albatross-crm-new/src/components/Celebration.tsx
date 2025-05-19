@@ -4,11 +4,15 @@
 import { useEffect, useState } from 'react'
 import confetti from 'canvas-confetti'
 
-export function Celebration() {
-  const [isCelebrating, setIsCelebrating] = useState(false)
+interface CelebrationProps {
+  trigger: boolean;
+}
+
+export function Celebration({ trigger }: CelebrationProps) {
+  const [isCelebrating, setIsCelebrating] = useState(trigger)
 
   useEffect(() => {
-    if (isCelebrating) {
+    if (trigger) {
       confetti({
         particleCount: 150,
         spread: 70,

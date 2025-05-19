@@ -1,5 +1,4 @@
-// src/types/index.ts
-export type LeadStatus = 'New' | 'Contacted' | 'Closed';
+export type LeadStatus = "New" | "Contacted" | "Closed"; 
 
 export interface Lead {
   id: string;
@@ -13,6 +12,18 @@ export interface Lead {
   replyCount?: number;
   energyScore?: number;
   company?: string;
+  score: number;
+  notes?: string;
+}
+
+export interface Meeting {
+  id: string;
+  title: string;
+  date: Date;
+  leadId: string;
+  duration: number;
+  notes: string;
+  createdAt: Date;
 }
 
 export function calculateEnergyScore(lead: Omit<Lead, 'id'>): number {
