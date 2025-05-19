@@ -24,18 +24,6 @@ export default [
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
       "@typescript-eslint/no-empty-object-type": "error",
-      "@typescript-eslint/ban-types": [
-        "error",
-        {
-          types: {
-            "{}": {
-              message: "Use 'object' or a more specific type instead",
-              fixWith: "object"
-            }
-          }
-        }
-      ],
-      
       // React/Next.js specific
       "react-hooks/exhaustive-deps": "warn",
     },

@@ -1,9 +1,9 @@
 import type { NextConfig } from "next";
+import type { Configuration as WebpackConfig } from "webpack";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   
-  // Modern CORS handling (Next.js 13.4+)
   allowedDevOrigins: [
     "localhost:3000",
     "localhost:3002",
@@ -12,20 +12,27 @@ const nextConfig: NextConfig = {
     "3000-firebase-albatrossaigit-1747520015427.cluster-vpxjqdstfzgs6qeiaf7rdlsqrc.cloudworkstations.dev"
   ],
 
-  // WebSocket/HMR Fixes
-  experimental: {},
-  webpack: (config) => {
+  webpack: (config: WebpackConfig, { isServer }) => {
     // Path aliases
+    config.resolve = config.resolve || {};
     config.resolve.alias = {
       ...config.resolve.alias,
       '@components': './src/components',
       '@lib': './src/lib',
     };
-    
+
+    // Prisma client workaround - properly typed externals handling
+    if (isServer) {
+      config.externals = Array.isArray(config.externals)
+        ? [...config.externals, '@prisma/client', '.prisma/client']
+        : config.externals
+        ? [config.externals, '@prisma/client', '.prisma/client']
+        : ['@prisma/client', '.prisma/client'];
+    }
+
     return config;
   },
 
-  // Production CORS configuration
   async headers() {
     return process.env.NODE_ENV === 'production' ? [
       {

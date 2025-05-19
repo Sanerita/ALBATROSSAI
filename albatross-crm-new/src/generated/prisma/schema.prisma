@@ -13,3 +13,19 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model Lead {
+  id          String    @id @default(cuid())
+  name        String
+  email       String    @unique
+  budget      Float
+  status      String
+  company     String?
+  urgency     Boolean?
+  engagement  Int?
+  notes       String?
+  score       Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastContact DateTime?
+}

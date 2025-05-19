@@ -1,14 +1,34 @@
 import { Redis } from '@upstash/redis'
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '@prisma/client';
 
 
-const prisma = new PrismaClient()
-// Define base lead properties without Redis-specific requirements
+
+
+ 
+// Enhanced Singleton Prisma Client with proper typing
+declare global {
+  // eslint-disable-next-line no-var
+  var prisma: PrismaClient | undefined
+}
+
+const prisma = globalThis.prisma || new PrismaClient({
+  log: process.env.NODE_ENV === 'development' 
+    ? ['query', 'info', 'warn', 'error']
+    : ['warn', 'error'],
+})
+
+if (process.env.NODE_ENV !== 'production') {
+  globalThis.prisma = prisma
+}
+
+// Type definitions
+type LeadStatus = 'New' | 'Contacted' | 'Closed'
+
 interface BaseLead {
   name: string
   email: string
   budget: number
-  status: 'New' | 'Contacted' | 'Closed'
+  status: LeadStatus
   company?: string
   urgency?: boolean
   engagement?: number
@@ -16,8 +36,7 @@ interface BaseLead {
   score: number
 }
 
-// Define Redis-compatible type with index signature
-type RedisLead = BaseLead & {
+interface RedisLead extends BaseLead {
   id: string
   createdAt: number
   updatedAt: number
@@ -25,76 +44,132 @@ type RedisLead = BaseLead & {
   [key: string]: unknown // Index signature
 }
 
-// Response type for API (converts timestamps to Dates)
-type LeadResponse = Omit<RedisLead, 'createdAt' | 'updatedAt' | 'lastContact'> & {
+interface LeadResponse extends Omit<BaseLead, 'score'> {
+  id: string
   createdAt: Date
   updatedAt: Date
   lastContact: Date | null
 }
 
+// Redis client with error handling
 const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+  url: process.env.UPSTASH_REDIS_REST_URL || '',
+  token: process.env.UPSTASH_REDIS_REST_TOKEN || '',
 })
 
-const generateId = (): string => `lead:${Date.now()}:${Math.random().toString(36).substring(2, 8)}`
+// Utility functions
+const generateId = (): string => 
+  `lead:${Date.now()}:${Math.random().toString(36).substring(2, 8)}`
 
-function calculateEnergyScore(leadData: Pick<BaseLead, 'budget' | 'urgency' | 'engagement'>): number {
+const calculateEnergyScore = (leadData: Pick<BaseLead, 'budget' | 'urgency' | 'engagement'>): number => {
   let score = leadData.budget / 1000
   if (leadData.urgency) score += 30
   if (leadData.engagement) score += leadData.engagement * 10
   return Math.min(Math.round(score), 100)
 }
 
+const toRedisLead = (data: Omit<BaseLead, 'score'>, id: string, score: number): RedisLead => ({
+  ...data,
+  id,
+  score,
+  createdAt: Date.now(),
+  updatedAt: Date.now(),
+  lastContact: data.status === 'Contacted' ? Date.now() : null
+})
+
+const toLeadResponse = (lead: RedisLead | any): LeadResponse => {
+  if ('createdAt' in lead && typeof lead.createdAt === 'number') {
+    // Redis lead
+    return {
+      ...lead,
+      createdAt: new Date(lead.createdAt),
+      updatedAt: new Date(lead.updatedAt),
+      lastContact: lead.lastContact ? new Date(lead.lastContact) : null
+    }
+  }
+  // Prisma lead
+  return {
+    ...lead,
+    urgency: lead.urgency ?? false,
+    engagement: lead.engagement ?? undefined,
+    score: lead.score ?? 0,
+    lastContact: lead.lastContact ?? null
+  }
+}
+
 export const leadRepository = {
   create: async (leadData: Omit<BaseLead, 'score'>): Promise<LeadResponse> => {
     const id = generateId()
-    const now = Date.now()
     const score = calculateEnergyScore(leadData)
+    const redisLead = toRedisLead(leadData, id, score)
 
-    const redisLead: RedisLead = {
-      ...leadData,
-      id,
-      score,
-      createdAt: now,
-      updatedAt: now,
-      lastContact: leadData.status === 'Contacted' ? now : null
-    }
+    try {
+      await Promise.all([
+        redis.hset(id, redisLead),
+        redis.zadd('leads:index', { score: redisLead.createdAt, member: id }),
+        prisma.lead.create({
+          data: {
+            ...redisLead,
+            createdAt: new Date(redisLead.createdAt),
+            updatedAt: new Date(redisLead.updatedAt),
+            lastContact: redisLead.lastContact ? new Date(redisLead.lastContact) : null
+          }
+        })
+      ])
 
-    await redis.hset(id, redisLead)
-    await redis.zadd('leads:index', { score: now, member: id })
-
-    return {
-      ...redisLead,
-      createdAt: new Date(now),
-      updatedAt: new Date(now),
-      lastContact: redisLead.lastContact ? new Date(redisLead.lastContact) : null
+      return toLeadResponse(redisLead)
+    } catch (error) {
+      console.error('Failed to create lead:', error)
+      throw new Error('Failed to create lead')
     }
   },
 
   findAll: async (): Promise<LeadResponse[]> => {
-    const ids = await redis.zrange<string[]>('leads:index', 0, -1)
-    
-    if (!ids.length) return []
+    try {
+      // Try Redis first
+      const redisIds = await redis.zrange<string[]>('leads:index', 0, -1)
+      
+      if (redisIds.length > 0) {
+        const pipeline = redis.pipeline()
+        redisIds.forEach(id => pipeline.hgetall<RedisLead>(id))
+        const results = await pipeline.exec()
 
-    const pipeline = redis.pipeline()
-    ids.forEach(id => pipeline.hgetall<RedisLead>(id))
-    const results = await pipeline.exec()
+        if (results?.length) {
+          return results
+            .filter((result): result is RedisLead => result !== null)
+            .map(toLeadResponse)
+            .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+        }
+      }
 
-    if (!results) return []
+      // Fallback to Prisma
+      const prismaLeads = await prisma.lead.findMany({
+        orderBy: { createdAt: 'desc' }
+      })
+      return prismaLeads.map(toLeadResponse)
+    } catch (error) {
+      console.error('Failed to fetch leads:', error)
+      throw new Error('Failed to fetch leads')
+    }
+  },
 
-    return results
-      .filter((result): result is RedisLead => result !== null)
-      .map(lead => ({
-        ...lead,
-        budget: Number(lead.budget),
-        engagement: lead.engagement ? Number(lead.engagement) : undefined,
-        score: Number(lead.score),
-        createdAt: new Date(Number(lead.createdAt)),
-        updatedAt: new Date(Number(lead.updatedAt)),
-        lastContact: lead.lastContact ? new Date(Number(lead.lastContact)) : null
-      }))
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+  // Additional methods for better API
+  findById: async (id: string): Promise<LeadResponse | null> => {
+    try {
+      const [redisLead, prismaLead] = await Promise.all([
+        redis.hgetall<RedisLead>(id),
+        prisma.lead.findUnique({ where: { id } })
+      ])
+
+      return redisLead 
+        ? toLeadResponse(redisLead) 
+        : prismaLead 
+          ? toLeadResponse(prismaLead) 
+          : null
+    } catch (error) {
+      console.error(`Failed to fetch lead ${id}:`, error)
+      throw new Error(`Failed to fetch lead ${id}`)
+    }
   }
 }
 
