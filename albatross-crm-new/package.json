@@ -9,7 +9,7 @@
     "lint": "next lint",
     "type": "module",
     "postinstall": "prisma generate",
-    "build:css": "postcss ./public/styles.css -o ./src/app/globals.css"
+    "build:css": "postcss ./src/app/styles.css -o ./src/app/styles.css"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
