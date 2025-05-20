@@ -14,6 +14,8 @@ import AddLeadModal from '@/components/AddLeadModal'
 import { ScheduleMeetingModal } from '@/components/ScheduleMeetingModal'
 import { v4 as uuidv4 } from 'uuid'
 import { isSameDay } from 'date-fns'
+import { Card } from '@/components/ui/card'
+import { toast } from 'sonner'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -32,58 +34,97 @@ export default function DashboardPage() {
         setIsLoading(true)
         setError(null)
         
-        const [leadsRes, meetingsRes, activitiesRes] = await Promise.all([
-          fetch('/api/leads'),
-          fetch('/api/meetings'),
-          fetch('/api/activities')
-        ])
+        // Enhanced mock data
+        const mockLeads: Lead[] = [
+          {
+            id: uuidv4(),
+            name: 'John Doe',
+            email: 'john@example.com',
+            phone: '+1 (555) 123-4567',
+            company: 'Acme Corp',
+            budget: 15000,
+            status: 'New',
+            score: 75,
+            urgency: true,
+            engagement: 3,
+            notes: 'Interested in enterprise plan',
+            createdAt: new Date(),
+            updatedAt: new Date()
+          },
+          {
+            id: uuidv4(),
+            name: 'Jane Smith',
+            email: 'jane@startup.io',
+            phone: '+1 (555) 987-6543',
+            company: 'StartUp Inc',
+            budget: 8000,
+            status: 'Contacted',
+            score: 60,
+            urgency: false,
+            engagement: 2,
+            notes: 'Requested demo',
+            createdAt: new Date(Date.now() - 86400000),
+            updatedAt: new Date()
+          }
+        ]
+        
+        const mockMeetings: Meeting[] = [
+          {
+            id: uuidv4(),
+            leadId: mockLeads[0].id,
+            title: 'Product Demo',
+            date: new Date(Date.now() + 86400000), // Tomorrow
+            duration: 45,
+            notes: 'Show enterprise features',
+            location: 'Zoom Meeting',
+            createdAt: new Date()
+          },
+          {
+            id: uuidv4(),
+            leadId: mockLeads[1].id,
+            title: 'Follow-up Call',
+            date: new Date(Date.now() + 172800000), // 2 days from now
+            duration: 30,
+            notes: 'Discuss pricing options',
+            location: 'Phone Call',
+            createdAt: new Date()
+          }
+        ]
+        
+        const mockActivities = [
+          {
+            id: uuidv4(),
+            type: 'lead_added',
+            message: 'Added new lead: John Doe',
+            timestamp: new Date(),
+            user: {
+              name: 'Alex Johnson',
+              avatar: '/avatars/alex.jpg'
+            }
+          },
+          {
+            id: uuidv4(),
+            type: 'meeting_scheduled',
+            message: 'Scheduled meeting with Jane Smith',
+            timestamp: new Date(Date.now() - 3600000),
+            user: {
+              name: 'Sam Wilson',
+              avatar: '/avatars/sam.jpg'
+            }
+          }
+        ]
 
-        // Check for HTTP errors
-        if (!leadsRes.ok) throw new Error('Failed to fetch leads')
-        if (!meetingsRes.ok) throw new Error('Failed to fetch meetings')
-        if (!activitiesRes.ok) throw new Error('Failed to fetch activities')
-
-        // Verify content type is JSON
-        const leadsContentType = leadsRes.headers.get('content-type')
-        const meetingsContentType = meetingsRes.headers.get('content-type')
-        const activitiesContentType = activitiesRes.headers.get('content-type')
-
-        if (!leadsContentType?.includes('application/json')) {
-          throw new Error('Leads API did not return JSON')
-        }
-        if (!meetingsContentType?.includes('application/json')) {
-          throw new Error('Meetings API did not return JSON')
-        }
-        if (!activitiesContentType?.includes('application/json')) {
-          throw new Error('Activities API did not return JSON')
-        }
-
-        const [leadsData, meetingsData, activitiesData] = await Promise.all([
-          leadsRes.json(),
-          meetingsRes.json(),
-          activitiesRes.json()
-        ])
-
-        const processedLeads: Lead[] = leadsData.map((lead: any) => ({
-          ...lead,
-          id: lead.id || uuidv4(),
-          status: lead.status as LeadStatus,
-          lastContact: lead.lastContact ? new Date(lead.lastContact) : undefined,
-          score: calculateLeadScore(lead)
-        }))
-
-        const processedMeetings: Meeting[] = meetingsData.map((meeting: any) => ({
-          ...meeting,
-          date: new Date(meeting.date),
-          createdAt: new Date(meeting.createdAt || Date.now())
-        }))
-
-        setLeads(processedLeads)
-        setMeetings(processedMeetings)
-        setActivities(activitiesData)
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 800))
+        
+        setLeads(mockLeads)
+        setMeetings(mockMeetings)
+        setActivities(mockActivities)
+        
       } catch (error) {
         console.error('Error fetching data:', error)
         setError(error instanceof Error ? error.message : 'An unknown error occurred')
+        toast.error('Failed to load dashboard data')
       } finally {
         setIsLoading(false)
       }
@@ -94,52 +135,151 @@ export default function DashboardPage() {
 
   const calculateLeadScore = (lead: Partial<Lead>): number => {
     let score = 0
+    // Budget contributes up to 30 points ($2k = 30 points)
     score += Math.min((lead.budget || 0) / 2000 * 30, 30)
+    // Urgency adds 40 points
     if (lead.urgency) score += 40
-    score += (lead.engagement || 0) * 10
-    return Math.min(score, 100)
+    // Engagement (1-5 scale) contributes up to 30 points
+    score += (lead.engagement || 0) * 6
+    return Math.min(Math.round(score), 100)
   }
 
-  const handleLeadStatusChange = (leadId: string, newStatus: LeadStatus) => {
-    setLeads(prevLeads =>
-      prevLeads.map(lead =>
-        lead.id === leadId 
-          ? { 
-              ...lead, 
-              status: newStatus,
-              score: calculateLeadScore({ ...lead, status: newStatus })
-            } 
-          : lead
+  const handleLeadStatusChange = async (leadId: string, newStatus: LeadStatus) => {
+    try {
+      setLeads(prevLeads =>
+        prevLeads.map(lead =>
+          lead.id === leadId 
+            ? { 
+                ...lead, 
+                status: newStatus,
+                score: calculateLeadScore({ ...lead, status: newStatus }),
+                updatedAt: new Date()
+              } 
+            : lead
+        )
       )
-    )
 
-    if (newStatus === 'Closed') {
-      setTriggerCelebration(true)
-      setTimeout(() => setTriggerCelebration(false), 3000)
+      if (newStatus === 'Closed') {
+        setTriggerCelebration(true)
+        setTimeout(() => setTriggerCelebration(false), 3000)
+        toast.success('Lead closed successfully!')
+        
+        // Add activity
+        const lead = leads.find(l => l.id === leadId)
+        setActivities(prev => [
+          {
+            id: uuidv4(),
+            type: 'lead_closed',
+            message: `Closed lead: ${lead?.name || 'Unknown'}`,
+            timestamp: new Date(),
+            user: {
+              name: 'You',
+              avatar: '/avatars/current-user.jpg'
+            }
+          },
+          ...prev
+        ])
+      }
+    } catch (error) {
+      toast.error('Failed to update lead status')
     }
   }
 
-  const handleAddLead = (newLead: { name: string; email: string; budget: number; notes: string }) => {
-    const leadWithScore: Lead = {
-      ...newLead,
-      id: uuidv4(),
-      status: 'New',
-      score: calculateLeadScore(newLead),
-      createdAt: new Date(),
-      updatedAt: new Date(), // Add updatedAt
+  const handleLeadClick = (leadId: string) => {
+    // Placeholder function for handling lead clicks
+    console.log(`Lead with ID ${leadId} clicked.`);
+    // You can add your navigation or other logic here
+  };
+
+  const handleAddLead = async (newLead: Omit<Lead, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'score'>) => {
+    try {
+      const leadWithScore: Lead = {
+        ...newLead,
+        id: uuidv4(),
+        status: 'New',
+        score: calculateLeadScore(newLead),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+      
+      setLeads(prevLeads => [leadWithScore, ...prevLeads])
+      setShowAddLeadModal(false)
+      toast.success('Lead added successfully!')
+      
+      // Add activity
+      setActivities(prev => [
+        {
+          id: uuidv4(),
+          type: 'lead_added',
+          message: `Added new lead: ${newLead.name}`,
+          timestamp: new Date(),
+          user: {
+            name: 'You',
+            avatar: '/avatars/current-user.jpg'
+          }
+        },
+        ...prev
+      ])
+    } catch (error) {
+      toast.error('Failed to add lead')
     }
-    setLeads(prevLeads => [...prevLeads, leadWithScore])
-    setShowAddLeadModal(false)
   }
 
-  const handleScheduleMeeting = (meeting: Omit<Meeting, 'id' | 'createdAt'>) => {
-    const newMeeting: Meeting = {
-      ...meeting,
-      id: uuidv4(),
-      createdAt: new Date()
+  const handleScheduleMeeting = async (meeting: Omit<Meeting, 'id' | 'createdAt'>) => {
+    try {
+      const newMeeting: Meeting = {
+        ...meeting,
+        id: uuidv4(),
+        createdAt: new Date()
+      }
+      
+      setMeetings(prev => [newMeeting, ...prev])
+      setShowScheduleModal(false)
+      toast.success('Meeting scheduled!')
+      
+      // Add activity
+      const lead = leads.find(l => l.id === meeting.leadId)
+      setActivities(prev => [
+        {
+          id: uuidv4(),
+          type: 'meeting_scheduled',
+          message: `Scheduled meeting with ${lead?.name || 'lead'}`,
+          timestamp: new Date(),
+          user: {
+            name: 'You',
+            avatar: '/avatars/current-user.jpg'
+          }
+        },
+        ...prev
+      ])
+    } catch (error) {
+      toast.error('Failed to schedule meeting')
     }
-    setMeetings(prev => [...prev, newMeeting])
-    setShowScheduleModal(false)
+  }
+
+  const handleDeleteLead = async (leadId: string) => {
+    try {
+      setLeads(prev => prev.filter(lead => lead.id !== leadId))
+      toast.success('Lead deleted successfully')
+      
+      // Add activity
+      const lead = leads.find(l => l.id === leadId)
+      setActivities(prev => [
+        {
+          id: uuidv4(),
+          type: 'lead_deleted',
+          message: `Deleted lead: ${lead?.name || 'Unknown'}`,
+          timestamp: new Date(),
+          user: {
+            name: 'You',
+            avatar: '/avatars/current-user.jpg'
+          }
+        },
+        ...prev
+      ])
+    } catch (error) {
+      toast.error('Failed to delete lead')
+    }
   }
 
   const stats = {
@@ -150,19 +290,35 @@ export default function DashboardPage() {
     ).length,
     conversionRate: leads.length > 0 
       ? Math.round((leads.filter(lead => lead.status === 'Closed').length / leads.length) * 100)
-      : 0
+      : 0,
+    totalValue: leads.reduce((sum, lead) => sum + (lead.budget || 0), 0)
   }
 
+  if (isLoading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-32 rounded-lg bg-gray-200" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Skeleton className="lg:col-span-2 h-96 rounded-lg bg-gray-200" />
+          <Skeleton className="h-96 rounded-lg bg-gray-200" />
+        </div>
+      </div>
+    )
+  }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-full">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative max-w-md">
-          <strong className="font-bold">Error!</strong>
-          <span className="block sm:inline"> {error}</span>
-          <button 
-            className="mt-2 bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm"
+      <div className="flex flex-col items-center justify-center h-screen">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded max-w-md">
+          <strong>Error loading data:</strong>
+          <p className="mt-2">{error}</p>
+          <button
             onClick={() => window.location.reload()}
+            className="mt-4 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
           >
             Retry
           </button>
@@ -171,56 +327,19 @@ export default function DashboardPage() {
     )
   }
 
-  // In your dashboard page component
-if (isLoading) {
   return (
-    <div className="flex items-center justify-center h-screen">
-      <div className="space-y-4">
-        <Skeleton className="h-12 w-full" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-32 rounded-lg" />
-          ))}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Skeleton className="lg:col-span-2 h-96 rounded-lg" />
-          <Skeleton className="h-96 rounded-lg" />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-if (error) {
-  return (
-    <div className="flex flex-col items-center justify-center h-screen">
-      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded max-w-md">
-        <strong>Error loading data:</strong>
-        <p className="mt-2">{error}</p>
-        <button
-          onClick={() => window.location.reload()}
-          className="mt-4 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
-        >
-          Retry
-        </button>
-      </div>
-    </div>
-  )
-}
-
-  return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-gray-900">AlbatrossAI CRM</h1>
-          <p className="text-gray-800">
-            Your leads' energy levels at a glance. Focus on what matters!
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600">
+            Overview of your leads and activities
           </p>
         </div>
         <div className="flex gap-2">
           <Button 
-            className="bg-teal-500 hover:bg-teal-600"
             onClick={() => setShowAddLeadModal(true)}
+            className="bg-blue-600 hover:bg-blue-700"
           >
             <PlusIcon className="mr-2 h-4 w-4" />
             Add Lead
@@ -230,139 +349,82 @@ if (error) {
             onClick={() => setShowScheduleModal(true)}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            View Schedule
+            Schedule Meeting
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {isLoading ? (
-          [...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-32 rounded-lg bg-[#f5d67a]" />
-          ))
-        ) : (
-          <StatsCards stats={stats} />
-        )}
-      </div>
+      <StatsCards stats={stats} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white rounded-lg shadow p-4 md:p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-800">
-              Lead Pipeline
-            </h2>
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <HighlighterIcon className="h-4 w-4 text-teal-500" />
-              <span>Energy Meter: </span>
-              <span className="flex items-center gap-1">
-                <span className="inline-block w-3 h-3 rounded-full bg-red-500"></span>
-                Low
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="inline-block w-3 h-3 rounded-full bg-yellow-500"></span>
-                Medium
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="inline-block w-3 h-3 rounded-full bg-green-500"></span>
-                High
-              </span>
+        <div className="lg:col-span-2 space-y-4">
+          <Card className="bg-white p-6 shadow-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">Lead Pipeline</h2>
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <HighlighterIcon className="h-4 w-4 text-blue-500" />
+                <span>Energy Meter</span>
+              </div>
             </div>
-          </div>
-          {isLoading ? (
-            <div className="space-y-4">
-              <Skeleton className="h-12 w-full bg-[#f5d67a]" />
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-16 w-full bg-[#f5d67a]" />
-              ))}
-            </div>
-          ) : (
             <LeadsTable 
               leads={leads} 
               onStatusChange={handleLeadStatusChange}
+              onDeleteLead={handleDeleteLead}
+              onLeadClick={handleLeadClick}
             />
-          )}
+          </Card>
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow p-4 md:p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">
-              Scheduled Meetings
-            </h2>
-            {isLoading ? (
-              <div className="space-y-4">
-                {[...Array(3)].map((_, i) => (
-                  <Skeleton key={i} className="h-20 w-full bg-[#f5d67a]" />
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {meetings.slice(0, 3).map(meeting => {
-                  const lead = leads.find(l => l.id === meeting.leadId)
-                  return (
-                    <div 
-                      key={meeting.id}
-                      className="p-3 border rounded-lg hover:bg-teal-50 transition-colors"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-medium">{lead?.name || 'Unknown Lead'}</h3>
-                          <p className="text-sm text-gray-600">{meeting.title}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs px-2 py-1 bg-teal-100 text-teal-800 rounded-full">
-                            {meeting.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="text-xs"
-                            onClick={() => router.push(`/meeting/${meeting.id}`)}
-                          >
-                            Join
-                          </Button>
-                        </div>
+          <Card className="bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold mb-4">Upcoming Meetings</h2>
+            <div className="space-y-3">
+              {meetings.slice(0, 3).map(meeting => {
+                const lead = leads.find(l => l.id === meeting.leadId)
+                return (
+                  <div 
+                    key={meeting.id} 
+                    className="p-3 border rounded-lg hover:bg-blue-50 transition-colors"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-medium">{meeting.title}</h3>
+                        <p className="text-sm text-gray-600">
+                          {lead?.name || 'Unknown lead'}
+                        </p>
                       </div>
-                      {lead && (
-                        <div className="mt-2 flex items-center gap-2">
-                          <span className="text-xs">Energy:</span>
-                          <div className="relative w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
-                            <div 
-                              className={`absolute top-0 left-0 h-full ${
-                                lead.score > 75 ? 'bg-green-500' :
-                                lead.score > 50 ? 'bg-yellow-500' : 'bg-red-500'
-                              }`}
-                              style={{ width: `${lead.score}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-xs font-medium">{lead.score}%</span>
-                        </div>
-                      )}
+                      <div className="text-right">
+                        <p className="text-sm font-medium">
+                          {meeting.date.toLocaleDateString()}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {meeting.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
                     </div>
-                  )
-                })}
-                {meetings.length === 0 && (
-                  <p className="text-center text-gray-500 py-4">
-                    No meetings scheduled
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
+                    <Button 
+                      variant="link" 
+                      size="sm" 
+                      className="mt-2 text-blue-600 p-0 h-auto"
+                      onClick={() => router.push(`/meetings/${meeting.id}`)}
+                    >
+                      View details
+                    </Button>
+                  </div>
+                )
+              })}
+              {meetings.length === 0 && (
+                <p className="text-center text-gray-500 py-4">
+                  No meetings scheduled
+                </p>
+              )}
+            </div>
+          </Card>
 
-          <div className="bg-white rounded-lg shadow p-4 md:p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">
-              Activity Feed
-            </h2>
-            {isLoading ? (
-              <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <Skeleton key={i} className="h-16 w-full bg-[#f5d67a]" />
-                ))}
-              </div>
-            ) : (
-              <RecentActivity activities={activities} />
-            )}
-          </div>
+          <Card className="bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold mb-4">Recent Activity</h2>
+            <RecentActivity activities={activities} />
+          </Card>
         </div>
       </div>
 
@@ -371,6 +433,7 @@ if (error) {
         onClose={() => setShowAddLeadModal(false)}
         onSubmit={handleAddLead}
       />
+      
       <ScheduleMeetingModal
         open={showScheduleModal}
         onClose={() => setShowScheduleModal(false)}

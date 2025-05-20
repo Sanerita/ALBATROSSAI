@@ -7,6 +7,7 @@ import ClientWrapper from '../components/ClientWrapper'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { Inter } from 'next/font/google'
+import { Toaster } from 'sonner'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <main className="pt-16 pb-8">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
               {children}
+              <Toaster position="top-right" richColors />
             </div>
           </main>
           <Footer />

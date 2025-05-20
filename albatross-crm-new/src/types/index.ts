@@ -4,6 +4,7 @@ export interface Lead {
   id: string;
   name: string;
   email: string;
+  phone?: string;
   budget: number;
   status: LeadStatus;
   urgency?: boolean;
@@ -26,6 +27,7 @@ export interface Meeting {
   duration: number;
   notes: string;
   createdAt: Date;
+  location?: string;
 }
 
 /**

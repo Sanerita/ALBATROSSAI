@@ -49,6 +49,14 @@ export function KanbanBoard() {
     // ... other sample leads
   ])
 
+  interface KanbanBoardProps {
+    leads: Lead[]
+    onStatusChange: (leadId: string, newStatus: LeadStatus) => void
+    onDeleteLead: (leadId: string) => void
+    onLeadClick: (leadId: string) => void
+  }
+  
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
 
