@@ -21,7 +21,6 @@ export const ratelimit = (() => {
   }
 
   // Development fallback configuration
-  console.warn('Using in-memory rate limiter. For production, configure Upstash Redis.')
   return new Ratelimit({
     redis: new Redis({
       url: 'http://localhost:6379', // Dummy URL for type safety

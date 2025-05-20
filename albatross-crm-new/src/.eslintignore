@@ -15,3 +15,6 @@ src/generated/prisma/
 /.next
 /dist
 /src/generated/**  
+/src/generated/prisma/runtime/*
+/src/generated/prisma/wasm.js
+src/generated/prisma/**

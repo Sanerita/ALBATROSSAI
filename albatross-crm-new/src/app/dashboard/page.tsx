@@ -124,7 +124,9 @@ export default function DashboardPage() {
       ...newLead,
       id: uuidv4(),
       status: 'New',
-      score: calculateLeadScore(newLead)
+      score: calculateLeadScore(newLead),
+      createdAt: new Date(),
+      updatedAt: new Date(), // Add updatedAt
     }
     setLeads(prevLeads => [...prevLeads, leadWithScore])
     setShowAddLeadModal(false)

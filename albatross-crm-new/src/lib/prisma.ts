@@ -1,13 +1,21 @@
 import { PrismaClient } from '@prisma/client'
 
-// Prevent multiple instances of Prisma Client in development
-declare global {
-  var prisma: PrismaClient | undefined
+type PrismaClientSingleton = ReturnType<typeof getPrismaClient>
+
+const getPrismaClient = () => {
+  return new PrismaClient({
+    log: process.env.NODE_ENV === 'development' 
+      ? ['query', 'info', 'warn', 'error']
+      : ['warn', 'error']
+  })
 }
 
-const prisma = globalThis.prisma || new PrismaClient({
-  log: ['query', 'info', 'warn', 'error'],
-})
+declare global {
+  // eslint-disable-next-line no-var
+  var prisma: PrismaClientSingleton | undefined
+}
+
+const prisma = globalThis.prisma ?? getPrismaClient()
 
 if (process.env.NODE_ENV !== 'production') {
   globalThis.prisma = prisma

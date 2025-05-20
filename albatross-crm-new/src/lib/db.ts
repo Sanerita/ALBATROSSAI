@@ -3,7 +3,6 @@ import { PrismaClient } from '@prisma/client';
 
 
 
-
  
 // Enhanced Singleton Prisma Client with proper typing
 declare global {
@@ -119,7 +118,6 @@ export const leadRepository = {
 
       return toLeadResponse(redisLead)
     } catch (error) {
-      console.error('Failed to create lead:', error)
       throw new Error('Failed to create lead')
     }
   },
@@ -148,7 +146,6 @@ export const leadRepository = {
       })
       return prismaLeads.map(toLeadResponse)
     } catch (error) {
-      console.error('Failed to fetch leads:', error)
       throw new Error('Failed to fetch leads')
     }
   },
@@ -167,7 +164,6 @@ export const leadRepository = {
           ? toLeadResponse(prismaLead) 
           : null
     } catch (error) {
-      console.error(`Failed to fetch lead ${id}:`, error)
       throw new Error(`Failed to fetch lead ${id}`)
     }
   }
