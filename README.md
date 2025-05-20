@@ -1,6 +1,6 @@
 # AlbatrossAI CRM
 
-![AlbatrossAI Logo](public/logo.png) 
+![AlbatrossAI Logo](/ALBATROSSAI/logo.png) 
 
 A modern, AI-powered CRM solution built with Next.js, Tailwind CSS, and TypeScript.
 

@@ -1,6 +1,6 @@
 // src/lib/store.ts
 import { create } from 'zustand'
-import { Lead, LeadStatus, calculateEnergyScore } from '../types'
+import type { Lead, LeadStatus } from '../types'
 
 interface LeadStore {
   leads: Lead[]
@@ -11,17 +11,17 @@ interface LeadStore {
 }
 
 export const useLeadStore = create<LeadStore>((set) => ({
-  leads: [],
+  leads: [], // Initial state
   addLead: (lead) => set((state) => ({
     leads: [...state.leads, { 
       ...lead, 
-      id: Date.now().toString(),
-      energyScore: calculateEnergyScore(lead)
+      id: Date.now().toString(), // Simple unique ID
+      energyScore: 0 // Initial energy score, will be calculated elsewhere
     }]
   })),
   updateLeadStatus: (id, status) => set((state) => ({
     leads: state.leads.map((lead) => 
-      lead.id === id ? { ...lead, status } : lead
+      lead.id === id ? { ...lead, status: status } : lead
     )
   })),
   updateLead: (id, updates) => set((state) => ({

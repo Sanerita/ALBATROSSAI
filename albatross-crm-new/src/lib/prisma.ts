@@ -11,7 +11,6 @@ const getPrismaClient = () => {
 }
 
 declare global {
-  // eslint-disable-next-line no-var
   var prisma: PrismaClientSingleton | undefined
 }
 

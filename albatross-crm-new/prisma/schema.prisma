@@ -25,44 +25,46 @@ enum LeadStatus {
 /// Represents a potential customer lead in the CRM system
 model Lead {
   /// Auto-generated unique identifier
-  id          String     @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   /// Full name of the lead contact
-  name        String     @db.VarChar(255)
-  
+  name String @db.VarChar(255)
+
   /// Primary email for communication
-  email       String     @unique @db.VarChar(255)
-  
+  email String @unique @db.VarChar(255)
+
   /// Estimated budget in USD
-  budget      Float
-  
+  budget Float
+
   /// Current stage in sales pipeline
-  status      LeadStatus @default(NEW)
-  
+  status LeadStatus @default(NEW)
+
   /// Company name (optional)
-  company     String?    @db.VarChar(255)
-  
+  company String? @db.VarChar(255)
+
   /// Whether this lead requires urgent attention
-  urgency     Boolean?   @default(false)
-  
+  urgency Boolean? @default(false)
+
   /// Engagement score (0-100)
-  engagement  Int?       @default(0)
-  
+  engagement Int? @default(0)
+
   /// Additional notes about the lead
-  notes       String?    @db.Text
-  
+  notes String? @db.Text
+
   /// Calculated lead score
-  score       Int        @default(0)
-  
+  score Int @default(0)
+
   /// When the lead was created
-  createdAt   DateTime   @default(now())
-  
+  createdAt DateTime @default(now())
+
   /// When the lead was last updated
-  updatedAt   DateTime   @updatedAt
-  
+  updatedAt DateTime @updatedAt
+
   /// Last contact date
   lastContact DateTime?
-  
+  User        User?     @relation(fields: [userId], references: [id])
+  userId      String?
+
   // Indexes for better query performance
   @@index([email])
   @@index([status])
@@ -73,10 +75,10 @@ model Lead {
 
 /// User model for tracking ownership
 model User {
-  id          String   @id @default(cuid())
-  name        String
-  email       String   @unique
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  leads       Lead[]
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  leads     Lead[]
 }

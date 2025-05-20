@@ -1,12 +1,8 @@
 import { Redis } from '@upstash/redis'
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client'
 
-
-
- 
 // Enhanced Singleton Prisma Client with proper typing
 declare global {
-  // eslint-disable-next-line no-var
   var prisma: PrismaClient | undefined
 }
 
@@ -76,22 +72,37 @@ const toRedisLead = (data: Omit<BaseLead, 'score'>, id: string, score: number): 
   lastContact: data.status === 'Contacted' ? Date.now() : null
 })
 
-const toLeadResponse = (lead: RedisLead | any): LeadResponse => {
-  if ('createdAt' in lead && typeof lead.createdAt === 'number') {
-    // Redis lead
+const isRedisLead = (lead: unknown): lead is RedisLead => {
+  return (
+    lead !== null &&
+    typeof lead === 'object' &&
+    'createdAt' in lead && 
+    typeof (lead as RedisLead).createdAt === 'number'
+  )
+}
+
+const toLeadResponse = (lead: RedisLead | LeadResponse): LeadResponse => {
+  if (isRedisLead(lead)) {
     return {
-      ...lead,
+      id: lead.id,
+      name: lead.name,
+      email: lead.email,
+      budget: lead.budget,
+      status: lead.status,
+      company: lead.company,
+      urgency: lead.urgency,
+      engagement: lead.engagement,
+      notes: lead.notes,
       createdAt: new Date(lead.createdAt),
       updatedAt: new Date(lead.updatedAt),
-      lastContact: lead.lastContact ? new Date(lead.lastContact) : null
+      lastContact: lead.lastContact !== null ? new Date(lead.lastContact) : null
     }
   }
-  // Prisma lead
+
   return {
     ...lead,
     urgency: lead.urgency ?? false,
     engagement: lead.engagement ?? undefined,
-    score: lead.score ?? 0,
     lastContact: lead.lastContact ?? null
   }
 }
@@ -111,14 +122,17 @@ export const leadRepository = {
             ...redisLead,
             createdAt: new Date(redisLead.createdAt),
             updatedAt: new Date(redisLead.updatedAt),
-            lastContact: redisLead.lastContact ? new Date(redisLead.lastContact) : null
+            lastContact: redisLead.lastContact !== null ? new Date(redisLead.lastContact) : null
           }
         })
       ])
 
       return toLeadResponse(redisLead)
     } catch (error) {
-      throw new Error('Failed to create lead')
+      if (error instanceof Error) {
+        throw new Error(`Failed to create lead: ${error.message}`)
+      }
+      throw new Error('Failed to create lead due to an unknown error')
     }
   },
 
@@ -126,16 +140,15 @@ export const leadRepository = {
     try {
       // Try Redis first
       const redisIds = await redis.zrange<string[]>('leads:index', 0, -1)
-      
+
       if (redisIds.length > 0) {
         const pipeline = redis.pipeline()
         redisIds.forEach(id => pipeline.hgetall<RedisLead>(id))
         const results = await pipeline.exec()
 
         if (results?.length) {
-          return results
-            .filter((result): result is RedisLead => result !== null)
-            .map(toLeadResponse)
+          const validLeads = results.filter((result): result is RedisLead => result !== null)
+          return validLeads.map(toLeadResponse)
             .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
         }
       }
@@ -146,11 +159,13 @@ export const leadRepository = {
       })
       return prismaLeads.map(toLeadResponse)
     } catch (error) {
-      throw new Error('Failed to fetch leads')
+      if (error instanceof Error) {
+        throw new Error(`Failed to fetch leads: ${error.message}`)
+      }
+      throw new Error('Failed to fetch leads due to an unknown error')
     }
   },
 
-  // Additional methods for better API
   findById: async (id: string): Promise<LeadResponse | null> => {
     try {
       const [redisLead, prismaLead] = await Promise.all([
@@ -158,13 +173,68 @@ export const leadRepository = {
         prisma.lead.findUnique({ where: { id } })
       ])
 
-      return redisLead 
-        ? toLeadResponse(redisLead) 
-        : prismaLead 
-          ? toLeadResponse(prismaLead) 
-          : null
+      if (redisLead) return toLeadResponse(redisLead)
+      if (prismaLead) return toLeadResponse(prismaLead)
+      return null
     } catch (error) {
-      throw new Error(`Failed to fetch lead ${id}`)
+      if (error instanceof Error) {
+        throw new Error(`Failed to fetch lead ${id}: ${error.message}`)
+      }
+      throw new Error(`Failed to fetch lead ${id} due to an unknown error`)
+    }
+  },
+
+  update: async (id: string, updates: Partial<Omit<BaseLead, 'score'>>): Promise<LeadResponse> => {
+    try {
+      const [existingRedisLead] = await Promise.all([
+        redis.hgetall<RedisLead>(id),
+        prisma.lead.findUnique({ where: { id } })
+      ])
+
+      if (!existingRedisLead) {
+        throw new Error(`Lead with id ${id} not found`)
+      }
+
+      const updatedLead = {
+        ...existingRedisLead,
+        ...updates,
+        updatedAt: Date.now(),
+        lastContact: updates.status === 'Contacted' ? Date.now() : existingRedisLead.lastContact
+      }
+
+      await Promise.all([
+        redis.hset(id, updatedLead),
+        prisma.lead.update({
+          where: { id },
+          data: {
+            ...updates,
+            updatedAt: new Date(updatedLead.updatedAt),
+            lastContact: updatedLead.lastContact !== null ? new Date(updatedLead.lastContact) : null
+          }
+        })
+      ])
+
+      return toLeadResponse(updatedLead)
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to update lead ${id}: ${error.message}`)
+      }
+      throw new Error(`Failed to update lead ${id} due to an unknown error`)
+    }
+  },
+
+  delete: async (id: string): Promise<void> => {
+    try {
+      await Promise.all([
+        redis.del(id),
+        redis.zrem('leads:index', id),
+        prisma.lead.delete({ where: { id } })
+      ])
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to delete lead ${id}: ${error.message}`)
+      }
+      throw new Error(`Failed to delete lead ${id} due to an unknown error`)
     }
   }
 }

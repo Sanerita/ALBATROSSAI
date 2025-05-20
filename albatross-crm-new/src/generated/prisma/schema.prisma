@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
@@ -14,18 +11,74 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/// Represents the status of a lead in the sales pipeline
+enum LeadStatus {
+  NEW         @map("new")
+  CONTACTED   @map("contacted")
+  QUALIFIED   @map("qualified")
+  PROPOSAL    @map("proposal")
+  NEGOTIATION @map("negotiation")
+  WON         @map("won")
+  LOST        @map("lost")
+}
+
+/// Represents a potential customer lead in the CRM system
 model Lead {
-  id          String    @id @default(cuid())
-  name        String
-  email       String    @unique
-  budget      Float
-  status      String
-  company     String?
-  urgency     Boolean?
-  engagement  Int?
-  notes       String?
-  score       Int
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  /// Auto-generated unique identifier
+  id String @id @default(cuid())
+
+  /// Full name of the lead contact
+  name String @db.VarChar(255)
+
+  /// Primary email for communication
+  email String @unique @db.VarChar(255)
+
+  /// Estimated budget in USD
+  budget Float
+
+  /// Current stage in sales pipeline
+  status LeadStatus @default(NEW)
+
+  /// Company name (optional)
+  company String? @db.VarChar(255)
+
+  /// Whether this lead requires urgent attention
+  urgency Boolean? @default(false)
+
+  /// Engagement score (0-100)
+  engagement Int? @default(0)
+
+  /// Additional notes about the lead
+  notes String? @db.Text
+
+  /// Calculated lead score
+  score Int @default(0)
+
+  /// When the lead was created
+  createdAt DateTime @default(now())
+
+  /// When the lead was last updated
+  updatedAt DateTime @updatedAt
+
+  /// Last contact date
   lastContact DateTime?
+  User        User?     @relation(fields: [userId], references: [id])
+  userId      String?
+
+  // Indexes for better query performance
+  @@index([email])
+  @@index([status])
+  @@index([score])
+  @@index([createdAt])
+  @@index([urgency])
+}
+
+/// User model for tracking ownership
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  leads     Lead[]
 }

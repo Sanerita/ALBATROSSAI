@@ -13,6 +13,7 @@ const compat = new FlatCompat({
 })
 
 export default [
+  
   js.configs.recommended,
   ...compat.extends("next/core-web-vitals"),
   {
@@ -75,9 +76,16 @@ export default [
     ignores: [
       "**/node_modules/**",
       "**/.next/**",
-      "**/dist/**",
-      "**/coverage/**",
-      "**/.DS_Store"
+      "**/public/**",
+      "**/src/generated/prisma/**",
+      "/node_modules",
+      "/.next",
+      "/dist",
+      "/src/generated/**",
+      "/src/generated/prisma/runtime/*",
+      "/src/generated/prisma/wasm.js",
+      "src/generated/prisma/**",
+      "**/coverage/**"
     ]
   }
 ]
