@@ -11,6 +11,12 @@ import { Badge } from '@/components/ui/badge'
 
 
 interface LeadsTableProps {
+ leads: Lead[];
+ onStatusChange: (leadId: string, newStatus: LeadStatus) => void;
+ onDeleteLead: (leadId: string) => void;
+ onLeadClick: (leadId: string) => void;
+}
+interface LeadsTableProps {
   leads: Lead[];
   onStatusChange: (leadId: string, newStatus: LeadStatus) => void;
   onDeleteLead: (leadId: string) => void;
@@ -38,7 +44,7 @@ const statusVariants: Record<LeadStatus, 'secondary' | 'outline' | 'default'> = 
   Closed: 'default'
 }
 
-export function LeadsTable({ leads, onStatusChange, onLeadClick}: LeadsTableProps) {
+export function LeadsTable({ leads, onStatusChange, onDeleteLead, onLeadClick }: LeadsTableProps) {
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection }>({
     key: 'score',
     direction: 'desc'
@@ -171,8 +177,8 @@ export function LeadsTable({ leads, onStatusChange, onLeadClick}: LeadsTableProp
             {filteredLeads.length > 0 ? (
               filteredLeads.map(lead => (
                 <TableRow 
-                  key={lead.id} 
-                  className={onLeadClick? 'cursor-pointer hover:bg-muted/50' : ''}
+ key={lead.id} // Add unique key
+ className={onLeadClick !== undefined ? 'cursor-pointer hover:bg-muted/50' : ''}
                   onClick={() => onLeadClick?.(lead.id)}
                 >
                   <TableCell className="font-medium">

@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 interface KanbanColumnProps {
   id: string
   title: string
+  color: string
   count: number
   children: React.ReactNode
 }

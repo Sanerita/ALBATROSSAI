@@ -39,7 +39,7 @@ interface RedisLead extends BaseLead {
   [key: string]: unknown // Index signature
 }
 
-interface LeadResponse extends Omit<BaseLead, 'score'> {
+export interface LeadResponse extends Omit<BaseLead, 'score'> {
   id: string
   createdAt: Date
   updatedAt: Date
