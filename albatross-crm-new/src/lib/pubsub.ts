@@ -1,5 +1,5 @@
 import { PubSub } from '@google-cloud/pubsub';
-import { zustandStore } from '@/lib/store';
+import { useLeadStore } from '@/lib/store';
 
 const pubsub = new PubSub({
   projectId: process.env.GCP_PROJECT_ID,
@@ -15,11 +15,11 @@ export function setupADKListeners() {
       
       switch (data.type) {
         case 'LEAD_SCORED':
-          zustandStore.getState().updateLeadScore(data.leadId, data.score);
+          useLeadStore.getState().updateLeadScore(data.leadId, data.score);
           break;
           
         case 'PIPELINE_ADVICE':
-          zustandStore.getState().addRecommendation(
+          useLeadStore.getState().addRecommendation(
             data.leadId, 
             data.action
           );
