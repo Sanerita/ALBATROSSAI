@@ -22,14 +22,7 @@ export class ADKListener {
   private retryDelay = 5000;
 
   constructor(private projectId: string, private subscriptionName: string) {
-    const pubsub = new PubSub({
-      projectId,
-      retryOptions: {
-        maxRetries: 3,
-        maxRetryDelay: 60_000,
-        totalTimeout: 600_000
-      }
-    });
+    const pubsub = new PubSub({ projectId });
 
     this.subscription = pubsub.subscription(subscriptionName, {
       flowControl: {

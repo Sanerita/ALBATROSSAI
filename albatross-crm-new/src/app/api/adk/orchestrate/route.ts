@@ -2,8 +2,9 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { GoogleAuth } from 'google-auth-library';
-import { prisma } from '@/lib/prisma';
+import type { PrismaClient } from '@prisma/client';
 import { logger } from '@/lib/logger';
+
 
 const LeadSchema = z.object({
   id: z.string().uuid(),
@@ -18,11 +19,7 @@ export async function POST(req: Request) {
   // Initialize Google Auth with retry logic
   const auth = new GoogleAuth({
     credentials: JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS!),
-    scopes: ['https://www.googleapis.com/auth/cloud-platform'],
-    retryConfig: {
-      maxRetries: 3,
-      retryDelay: 1000
-    }
+    scopes: ['https://www.googleapis.com/auth/cloud-platform']
   });
 
   try {
@@ -65,7 +62,7 @@ export async function POST(req: Request) {
     }
 
     // Transactional database update
-    const updatedLead = await prisma.$transaction(async (tx) => {
+    const updatedLead = await prisma.$transaction(async (tx: PrismaClient) => {
       const existing = await tx.lead.findUnique({
         where: { id: lead.id },
         select: { version: true }
@@ -122,11 +119,3 @@ export async function POST(req: Request) {
     );
   }
 }
-
-// Add to your lib/logger.ts
-export const logger = {
-  info: (message: string, meta?: Record<string, unknown>) => 
-    console.log(JSON.stringify({ level: 'INFO', message, ...meta })),
-  error: (message: string, meta?: Record<string, unknown>) => 
-    console.error(JSON.stringify({ level: 'ERROR', message, ...meta }))
-};

@@ -1,5 +1,4 @@
 // src/lib/logger.ts
-import { type LogEntry, type Transport } from './logger.types';
 import { format } from 'util';
 
 /**
@@ -80,7 +79,7 @@ class FileTransport implements Transport {
   private readonly fs = require('fs');
   private readonly path = require('path');
   private readonly os = require('os');
-  private readonly stream: NodeJS.WritableStream;
+  private stream: NodeJS.WritableStream;
   private readonly maxSize = 10 * 1024 * 1024; // 10MB
   private readonly maxFiles = 5;
   private currentSize = 0;
