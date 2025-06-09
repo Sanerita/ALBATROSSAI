@@ -63,5 +63,10 @@ const nextConfig: NextConfig = {
     ] : [];
   },
 };
-
+module.exports = {
+  experimental: {
+    workerThreads: true,
+    cpus: 4
+  }
+}
 export default nextConfig;

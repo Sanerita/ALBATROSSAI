@@ -43,3 +43,4 @@ yarn-error.log*
 next-env.d.ts
 /firebase.config
 /src/lib/firebase.config 
+/config/gcp/*
