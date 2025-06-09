@@ -4,9 +4,8 @@ export function LeadEnergyGauge({ leadId }: { leadId: string }) {
   const [energy, setEnergy] = useState(0);
   
   useEffect(() => {
-    const ws = new WebSocket(
-      `wss://your-api.com/realtime?leadId=${leadId}`
-    );
+    const ws = new WebSocket(`wss://${window.location.host}/api/realtime`);
+    ws.onopen = () => ws.send(JSON.stringify({ leadId }));
     
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);

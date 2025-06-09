@@ -35,3 +35,9 @@ async def score_lead(lead: LeadRequest):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=5000)
+
+    endpoint = aiplatform.Endpoint(
+    endpoint_name=f"projects/{os.getenv('GCP_PROJECT')}/locations/us-central1/endpoints/lead-scoring",
+    credentials=aiplatform.gapic.Credentials.from_service_account_file(
+        os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+)

@@ -31,6 +31,17 @@ export const viewport: Viewport = {
   themeColor: '#12113d',
 }
 
+// src/app/layout.tsx or initialization module
+const listener = new ADKListener(
+  process.env.GCP_PROJECT_ID!,
+  process.env.PUBSUB_SUBSCRIPTION_NAME!
+);
+
+listener.start().catch((error) => {
+  logger.error('Failed to start listener', { error: error.message });
+  process.exit(1);
+});
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className={`${inter.variable}`}>
