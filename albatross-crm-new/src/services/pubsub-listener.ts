@@ -6,11 +6,17 @@ import { useLeadStore } from '@/lib/store';
 interface PubSubEvent {
   leadId: string;
   payload: Record<string, unknown>;
-  metadata?: {
+  metadata: {
     eventId: string;
     timestamp: string;
+    originalMessageId: string;
     agentSource?: string;
   };
+}
+
+interface LegacyPubSubEvent {
+  event: string;
+  data: any;
 }
 
 export class ADKListener {
@@ -18,17 +24,23 @@ export class ADKListener {
   private activeListeners = new Set<() => void>();
   private isRunning = false;
   private retryCount = 0;
-  private maxRetries = 5;
-  private retryDelay = 5000;
+  private readonly maxRetries = 5;
+  private readonly retryDelay = 5000;
 
-  constructor(private projectId: string, private subscriptionName: string) {
+  constructor(
+    private readonly projectId: string,
+    private readonly subscriptionName: string,
+    private readonly options: {
+      maxMessages?: number;
+      deadLetterTopic?: string;
+    } = {}
+  ) {
     const pubsub = new PubSub({ projectId });
-
     this.subscription = pubsub.subscription(subscriptionName, {
       flowControl: {
-        maxMessages: 100,
-        allowExcessMessages: false
-      }
+        maxMessages: options.maxMessages ?? 100,
+        allowExcessMessages: false,
+      },
     });
   }
 
@@ -41,7 +53,7 @@ export class ADKListener {
     this.isRunning = true;
     logger.info('Starting ADK Pub/Sub listener', {
       projectId: this.projectId,
-      subscription: this.subscriptionName
+      subscription: this.subscriptionName,
     });
 
     try {
@@ -56,7 +68,6 @@ export class ADKListener {
         this.subscription.removeListener('error', errorHandler);
       });
 
-      // Test connection
       await this.subscription.getMetadata();
       this.retryCount = 0;
     } catch (error) {
@@ -74,22 +85,17 @@ export class ADKListener {
         logger.debug('Processing Pub/Sub message', {
           eventId,
           leadId: data.leadId,
-          messageId: message.id
+          messageId: message.id,
         });
 
-        // Validate payload schema
         this.validateEvent(data);
-
-        // Process update
         useLeadStore.getState().updateLead(data.leadId, data.payload);
 
-        // Metrics
         const duration = Date.now() - startTime;
         logger.info('Successfully processed lead update', {
           eventId,
           leadId: data.leadId,
           durationMs: duration,
-          metadata: data.metadata
         });
 
         await message.ack();
@@ -99,12 +105,91 @@ export class ADKListener {
     };
   }
 
+  private parseMessage(message: Message): PubSubEvent {
+    const rawData = message.data.toString();
+    const baseMetadata = {
+      eventId: crypto.randomUUID(),
+      timestamp: new Date().toISOString(),
+      originalMessageId: message.id,
+    };
+
+    try {
+      const data = JSON.parse(rawData);
+
+      // Handle new format
+      if (data.leadId && data.payload) {
+        return {
+          leadId: data.leadId,
+          payload: data.payload,
+          metadata: {
+            ...baseMetadata,
+            ...(data.metadata || {}),
+          },
+        };
+      }
+
+      // Handle legacy format {"event": "...", "data": "..."}
+      if (data.event && data.data) {
+        logger.warn('Processing legacy message format', { messageId: message.id });
+        return {
+          leadId: `legacy-${crypto.randomUUID()}`,
+          payload: {
+            event: data.event,
+            data: data.data,
+          },
+          metadata: baseMetadata,
+        };
+      }
+
+      throw new Error(`Unsupported message format: ${rawData.substring(0, 100)}`);
+    } catch (error) {
+      logger.error('Message parsing failed', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        rawData: rawData.substring(0, 200),
+      });
+      throw error;
+    }
+  }
+
+  private validateEvent(event: PubSubEvent) {
+    if (!event.leadId || typeof event.leadId !== 'string') {
+      throw new Error('Invalid leadId in event');
+    }
+
+    if (!event.payload || typeof event.payload !== 'object') {
+      throw new Error('Invalid payload in event');
+    }
+  }
+
+  private async handleProcessingError(error: unknown, message: Message, eventId: string) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const rawData = message.data.toString().substring(0, 200);
+
+    logger.error('Failed to process message', {
+      eventId,
+      messageId: message.id,
+      error: errorMessage,
+      rawData,
+      action: 'nacking',
+    });
+
+    try {
+      await message.nack();
+    } catch (nackError) {
+      logger.error('Failed to nack message', {
+        eventId,
+        messageId: message.id,
+        error: nackError instanceof Error ? nackError.message : 'Unknown error',
+      });
+    }
+  }
+
   private createErrorHandler() {
     return (error: Error) => {
       logger.error('Pub/Sub connection error', {
         error: error.message,
         stack: error.stack,
-        retryCount: this.retryCount
+        retryCount: this.retryCount,
       });
 
       if (this.retryCount < this.maxRetries) {
@@ -114,59 +199,16 @@ export class ADKListener {
         }, this.retryDelay * this.retryCount);
       } else {
         this.shutdown();
-        process.exit(1); // Let process manager restart
+        process.exit(1);
       }
     };
-  }
-
-  private parseMessage(message: Message): PubSubEvent {
-    try {
-      const data = JSON.parse(message.data.toString());
-      if (!data.leadId || !data.payload) {
-        throw new Error('Invalid message format');
-      }
-      return data;
-    } catch (error) {
-      throw new Error(`Message parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
-
-  private validateEvent(event: PubSubEvent) {
-    if (typeof event.leadId !== 'string' || !event.leadId) {
-      throw new Error('Invalid leadId in event');
-    }
-
-    if (typeof event.payload !== 'object' || !event.payload) {
-      throw new Error('Invalid payload in event');
-    }
-  }
-
-  private async handleProcessingError(error: unknown, message: Message, eventId: string) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-    logger.error('Failed to process message', {
-      eventId,
-      messageId: message.id,
-      error: errorMessage,
-      action: 'nacking'
-    });
-
-    try {
-      await message.nack();
-    } catch (nackError) {
-      logger.error('Failed to nack message', {
-        eventId,
-        messageId: message.id,
-        error: nackError instanceof Error ? nackError.message : 'Unknown error'
-      });
-    }
   }
 
   private handleStartupError(error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logger.error('Failed to initialize listener', {
       error: errorMessage,
-      retryCount: this.retryCount
+      retryCount: this.retryCount,
     });
 
     if (this.retryCount < this.maxRetries) {
@@ -191,7 +233,6 @@ export class ADKListener {
     logger.info('Shutting down Pub/Sub listener');
     this.isRunning = false;
 
-    // Remove all listeners
     this.activeListeners.forEach(cleanup => cleanup());
     this.activeListeners.clear();
 
@@ -199,18 +240,39 @@ export class ADKListener {
       await this.subscription.close();
     } catch (error) {
       logger.error('Error during shutdown', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
 }
 
+// Helper function for publishers
+export function createPubSubMessage(
+  leadId: string,
+  payload: Record<string, unknown>,
+  metadata?: Omit<PubSubEvent['metadata'], 'eventId' | 'timestamp' | 'originalMessageId'>
+): Buffer {
+  const message = {
+    leadId,
+    payload,
+    metadata: {
+      eventId: crypto.randomUUID(),
+      timestamp: new Date().toISOString(),
+      ...metadata,
+    },
+  };
+  return Buffer.from(JSON.stringify(message));
+}
+
 // Usage example
 const listener = new ADKListener(
   process.env.GCP_PROJECT_ID!,
-  'crm-updates'
+  'crm-updates',
+  {
+    maxMessages: 100,
+    deadLetterTopic: process.env.DEAD_LETTER_TOPIC,
+  }
 );
 
-// Graceful shutdown
 process.on('SIGTERM', () => listener.shutdown());
 process.on('SIGINT', () => listener.shutdown());
