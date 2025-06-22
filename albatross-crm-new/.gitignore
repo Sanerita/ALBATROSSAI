@@ -44,3 +44,5 @@ next-env.d.ts
 /firebase.config
 /src/lib/firebase.config 
 /config/gcp/*
+
+config/gcp/service-account.json

@@ -7,7 +7,7 @@ const pubsub = new PubSub({
 });
 
 export function setupADKListeners() {
-  const subscription = pubsub.subscription('crm-agent-updates');
+  const subscription = pubsub.subscription('crm-updates');
   
   const messageHandler = (message: any) => {
     try {

@@ -2,7 +2,12 @@ import type { NextConfig } from "next";
 import type { Configuration as WebpackConfig } from "webpack";
 
 const nextConfig: NextConfig = {
+  
   reactStrictMode: true,
+
+ experimental: {
+      cpus: 4
+    },
   
   allowedDevOrigins: [
     "localhost:3000",
@@ -62,11 +67,6 @@ const nextConfig: NextConfig = {
       }
     ] : [];
   },
-};
-module.exports = {
-  experimental: {
-    workerThreads: true,
-    cpus: 4
-  }
 }
+
 export default nextConfig;
