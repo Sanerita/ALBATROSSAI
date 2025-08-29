@@ -7,38 +7,77 @@ import { cn } from '@/lib/utils'
 interface KanbanColumnProps {
   id: string
   title: string
-  color: string
   count: number
   children: React.ReactNode
+  className?: string
 }
 
-export function KanbanColumn({ id, title, count, children }: KanbanColumnProps) {
-  const { setNodeRef } = useDroppable({
+export function KanbanColumn({ id, title, count, children, className }: KanbanColumnProps) {
+  const { setNodeRef, isOver, active } = useDroppable({
     id,
-    data: { status: id },
+    data: { 
+      status: id,
+      type: 'column'
+    }
   })
 
-  const columnColors: Record<string, string> = {
-    new: 'bg-blue-50 border-blue-200',
-    contacted: 'bg-yellow-50 border-yellow-200',
-    closed: 'bg-green-50 border-green-200',
+  const columnStyles: Record<string, { bg: string; border: string; text: string }> = {
+    new: {
+      bg: 'bg-blue-50',
+      border: 'border-blue-200',
+      text: 'text-blue-800'
+    },
+    contacted: {
+      bg: 'bg-yellow-50',
+      border: 'border-yellow-200',
+      text: 'text-yellow-800'
+    },
+    closed: {
+      bg: 'bg-green-50',
+      border: 'border-green-200',
+      text: 'text-green-800'
+    },
+    default: {
+      bg: 'bg-gray-50',
+      border: 'border-gray-200',
+      text: 'text-gray-800'
+    }
   }
+
+  const currentStyle = columnStyles[id.toLowerCase()] || columnStyles.default
+  const isDraggingOver = isOver && active?.data.current?.type !== 'column'
 
   return (
     <div
       ref={setNodeRef}
       className={cn(
-        'p-3 rounded-lg border',
-        columnColors[id] || 'bg-gray-50 border-gray-200'
+        'flex flex-col h-full p-3 rounded-lg border transition-colors',
+        currentStyle.bg,
+        currentStyle.border,
+        isDraggingOver && 'ring-2 ring-blue-400 bg-opacity-70',
+        className
       )}
     >
       <div className="flex justify-between items-center mb-3">
-        <h3 className="font-medium text-gray-800">{title}</h3>
-        <span className="text-xs px-2 py-1 bg-white rounded-full shadow-sm">
+        <h3 className={cn('font-medium', currentStyle.text)}>
+          {title}
+        </h3>
+        <span className={cn(
+          'text-xs px-2 py-1 rounded-full shadow-sm',
+          currentStyle.bg.replace('50', '100'),
+          currentStyle.text
+        )}>
           {count}
         </span>
       </div>
-      {children}
+
+      <div className="flex-grow space-y-3 overflow-y-auto">
+        {children}
+      </div>
+
+      {isDraggingOver && (
+        <div className="mt-2 h-1 rounded-full bg-blue-400 animate-pulse"></div>
+      )}
     </div>
   )
 }

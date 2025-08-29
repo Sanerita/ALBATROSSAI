@@ -11,7 +11,7 @@ import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import { KanbanColumn } from './KanbanColumn'
 import LeadCard from './LeadCard'
 import { Button } from '@/components/ui/button'
-import { Plus, CalendarIcon, BatteryFullIcon } from 'lucide-react'
+import { Plus, CalendarIcon, BatteryFullIcon, FilterIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import AddLeadModal from './AddLeadModal'
 
@@ -31,13 +31,6 @@ interface Lead {
   notes: string
   createdAt: Date
   updatedAt: Date
-}
-
-export interface KanbanBoardProps {
-  leads: Lead[];
-  onStatusChange: (leadId: string, newStatus: LeadStatus) => void;
-  onDeleteLead: (leadId: string) => void;
-  onLeadClick: (leadId: string) => void;
 }
 
 export function KanbanBoard() {
@@ -90,6 +83,7 @@ export function KanbanBoard() {
   ])
 
   const [showAddModal, setShowAddModal] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
@@ -114,7 +108,16 @@ export function KanbanBoard() {
       if (newStatus === 'Closed') {
         updatedLead.energy = 100
         toast.success(`Deal closed with ${updatedLead.name}!`, {
-          description: `$${updatedLead.budget.toLocaleString()} contract`
+          description: `$${updatedLead.budget.toLocaleString()} contract`,
+          duration: 5000,
+          action: {
+            label: 'View',
+            onClick: () => console.log('View lead')
+          }
+        })
+      } else if (newStatus !== leads[oldIndex].status) {
+        toast.info(`Lead moved to ${newStatus}`, {
+          description: `${updatedLead.name}'s status updated`
         })
       }
 
@@ -123,35 +126,31 @@ export function KanbanBoard() {
     })
   }
 
-  const handleAddLead = ({ name, email, budget, notes }: { name: string; email: string; budget: number; notes: string; }) => {
+  const handleAddLead = (newLead: Omit<Lead, 'id' | 'status' | 'energy' | 'score' | 'createdAt' | 'updatedAt' | 'lastContact' | 'replies' | 'company'> & { company?: string }) => {
     const leadWithScore: Lead = {
-      name,
-      email,
-      budget,
-      notes,
+      ...newLead,
+      company: newLead.company || '',
       id: Date.now().toString(),
       status: 'New',
-      company: '', // Assuming company is optional or set later
-      lastContact: new Date(), // Assuming last contact is now
-      replies: 0, // Assuming 0 replies initially
-      energy: calculateEnergyScore(budget, 0), // Assuming 0 replies for new leads
-      score: calculateEnergyScore(budget, 0),
+      lastContact: new Date(),
+      replies: 0,
+      energy: calculateEnergyScore(newLead.budget, 0),
+      score: calculateEnergyScore(newLead.budget, 0),
       createdAt: new Date(),
       updatedAt: new Date()
-    };
+    }
 
-    setLeads(prev => [leadWithScore, ...prev]);
-    setShowAddModal(false);
-    toast.success('Lead added successfully');
+    setLeads(prev => [leadWithScore, ...prev])
+    setShowAddModal(false)
+    toast.success('Lead added successfully', {
+      description: `${leadWithScore.name} added to pipeline`
+    })
   }
 
   const calculateEnergyScore = (budget: number, replies: number): number => {
-    let score = 0
-    // Budget contributes up to 60 points
-    score += Math.min(budget / 500 * 12, 60)
-    // Replies contribute up to 40 points
-    score += Math.min(replies * 10, 40)
-    return Math.min(Math.round(score), 100)
+    const budgetScore = Math.min(budget / 500 * 12, 60)
+    const replyScore = Math.min(replies * 10, 40)
+    return Math.min(Math.round(budgetScore + replyScore), 100)
   }
 
   const handleDeleteLead = (leadId: string) => {
@@ -159,6 +158,7 @@ export function KanbanBoard() {
     setLeads(prev => prev.filter(lead => lead.id !== leadId))
     
     toast('Lead deleted', {
+      description: `${leadToDelete?.name} removed from pipeline`,
       action: {
         label: 'Undo',
         onClick: () => {
@@ -170,17 +170,52 @@ export function KanbanBoard() {
     })
   }
 
-  const statuses: { id: LeadStatus; title: string; color: string }[] = [
-    { id: 'New', title: 'New Leads', color: 'bg-blue-100 text-blue-800' },
-    { id: 'Contacted', title: 'Contacted', color: 'bg-yellow-100 text-yellow-800' },
-    { id: 'Closed', title: 'Closed Won', color: 'bg-green-100 text-green-800' },
+  const filteredLeads = leads.filter(lead => 
+    lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    lead.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    lead.email.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  const statuses: { id: LeadStatus; title: string; color: string; bgColor: string }[] = [
+    { id: 'New', title: 'New Leads', color: 'text-blue-800', bgColor: 'bg-blue-100' },
+    { id: 'Contacted', title: 'Contacted', color: 'text-yellow-800', bgColor: 'bg-yellow-100' },
+    { id: 'Closed', title: 'Closed Won', color: 'text-green-800', bgColor: 'bg-green-100' },
   ]
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <h2 className="text-xl font-bold">Lead Pipeline</h2>
+    <div className="flex flex-col gap-6 h-full">
+      <div className="flex flex-col gap-4">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Lead Pipeline</h1>
+          <div className="flex gap-2">
+            <Button variant="outline" className="gap-2">
+              <CalendarIcon size={16} />
+              View Calendar
+            </Button>
+            <Button 
+              className="gap-2 bg-blue-600 hover:bg-blue-700"
+              onClick={() => setShowAddModal(true)}
+            >
+              <Plus size={16} />
+              Add Lead
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="relative w-full md:w-64">
+              <input
+                type="text"
+                placeholder="Search leads..."
+                className="pl-8 pr-4 py-2 w-full rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <FilterIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+            </div>
+          </div>
+
           <div className="flex items-center gap-2 text-sm">
             <BatteryFullIcon className="h-4 w-4 text-blue-500" />
             <span>Energy Levels:</span>
@@ -198,23 +233,6 @@ export function KanbanBoard() {
             </span>
           </div>
         </div>
-        
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            className="gap-2"
-          >
-            <CalendarIcon size={16} />
-            View Calendar
-          </Button>
-          <Button 
-            className="gap-2 bg-blue-600 hover:bg-blue-700"
-            onClick={() => setShowAddModal(true)}
-          >
-            <Plus size={16} />
-            Add Lead
-          </Button>
-        </div>
       </div>
 
       <DndContext
@@ -222,9 +240,9 @@ export function KanbanBoard() {
         modifiers={[restrictToVerticalAxis]}
         onDragEnd={handleDragEnd}
       >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-grow">
           {statuses.map((status) => {
-            const columnLeads = leads.filter((lead) => lead.status === status.id)
+            const columnLeads = filteredLeads.filter((lead) => lead.status === status.id)
             return (
               <KanbanColumn
                 key={status.id}
@@ -232,27 +250,28 @@ export function KanbanBoard() {
                 title={status.title}
                 count={columnLeads.length}
                 color={status.color}
+                
               >
                 <SortableContext
                   items={columnLeads}
                   strategy={verticalListSortingStrategy}
                 >
-                  <div className="space-y-3">
-                    {columnLeads.map((lead) => (
-                      <LeadCard 
-                        key={lead.id} 
-                        lead={lead}
-                        onDelete={() => handleDeleteLead(lead.id)}
-                      />
-                    ))}
+                  <div className="space-y-3 h-full">
+                    {columnLeads.length === 0 ? (
+                      <div className="p-4 text-center text-sm text-gray-500 rounded-lg bg-gray-50 h-full flex items-center justify-center">
+                        No {status.title.toLowerCase()}
+                      </div>
+                    ) : (
+                      columnLeads.map((lead) => (
+                        <LeadCard 
+                          key={lead.id} 
+                          lead={lead}
+                          onDelete={() => handleDeleteLead(lead.id)}
+                        />
+                      ))
+                    )}
                   </div>
                 </SortableContext>
-
-                {columnLeads.length === 0 && (
-                  <div className="p-4 text-center text-sm text-gray-500 rounded-lg bg-gray-50">
-                    No {status.title.toLowerCase()}
-                  </div>
-                )}
               </KanbanColumn>
             )
           })}

@@ -1,7 +1,5 @@
-// app/components/Celebration.tsx
 'use client'
-
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import confetti from 'canvas-confetti'
 
 interface CelebrationProps {
@@ -9,8 +7,6 @@ interface CelebrationProps {
 }
 
 export function Celebration({ trigger }: CelebrationProps) {
-  const [isCelebrating, setIsCelebrating] = useState(trigger)
-
   useEffect(() => {
     if (trigger) {
       confetti({
@@ -18,18 +14,21 @@ export function Celebration({ trigger }: CelebrationProps) {
         spread: 70,
         origin: { y: 0.6 }
       })
-      
-      const timer = setTimeout(() => setIsCelebrating(false), 3000)
-      return () => clearTimeout(timer)
     }
-  }, [isCelebrating])
+  }, [trigger]) // Now properly responds to prop changes
 
-  return (
-    <button
-      onClick={() => setIsCelebrating(true)}
-      className="fixed bottom-4 right-4 bg-blue-500 text-white p-3 rounded-full shadow-lg hover:bg-blue-600 transition"
-    >
-      🎉 Celebrate Team
-    </button>
-  )
+  // return (
+  //   <button
+  //     onClick={() => {
+  //       confetti({
+  //         particleCount: 150,
+  //         spread: 70,
+  //         origin: { y: 0.6 }
+  //       })
+  //     }}
+  //     className="fixed bottom-4 right-4 bg-blue-500 text-white p-3 rounded-full shadow-lg hover:bg-blue-600 transition"
+  //   >
+  //     🎉 Celebrate Team
+  //   </button>
+  // )
 }

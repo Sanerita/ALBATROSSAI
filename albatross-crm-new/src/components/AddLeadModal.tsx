@@ -7,6 +7,7 @@ interface AddLeadModalProps {
   onClose: () => void;
   onSubmit: (formData: { name: string, email: string, budget: number, notes: string }) => void;
 }
+
 export default function AddLeadModal({ isOpen, onClose, onSubmit }: AddLeadModalProps) {
   const [formData, setFormData] = useState({
     name: '',
@@ -39,10 +40,42 @@ export default function AddLeadModal({ isOpen, onClose, onSubmit }: AddLeadModal
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-gold focus:ring-gold"
                 value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
+                required
               />
             </div>
             
-            {/* Other form fields */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Email</label>
+              <input
+                type="email"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-gold focus:ring-gold"
+                value={formData.email}
+                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Budget ($)</label>
+              <input
+                type="number"
+                min="0"
+                step="100"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-gold focus:ring-gold"
+                value={formData.budget}
+                onChange={(e) => setFormData({...formData, budget: Number(e.target.value) || 0})}
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Notes</label>
+              <textarea
+                rows={3}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-gold focus:ring-gold"
+                value={formData.notes}
+                onChange={(e) => setFormData({...formData, notes: e.target.value})}
+              />
+            </div>
             
             <div className="flex justify-end gap-3 pt-4">
               <button
@@ -54,9 +87,10 @@ export default function AddLeadModal({ isOpen, onClose, onSubmit }: AddLeadModal
               <button
                 onClick={() => {
                   onSubmit(formData);
-                  onClose()
+                  onClose();
                 }}
                 className="px-4 py-2 bg-gold text-white font-medium rounded-md hover:bg-opacity-90"
+                disabled={!formData.name || !formData.email}
               >
                 Add Lead
               </button>

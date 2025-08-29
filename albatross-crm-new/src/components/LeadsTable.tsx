@@ -9,13 +9,6 @@ import { ChevronDown, ChevronUp, MoreHorizontal, Mail, User, Clock, CheckCircle 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Badge } from '@/components/ui/badge'
 
-
-interface LeadsTableProps {
- leads: Lead[];
- onStatusChange: (leadId: string, newStatus: LeadStatus) => void;
- onDeleteLead: (leadId: string) => void;
- onLeadClick: (leadId: string) => void;
-}
 interface LeadsTableProps {
   leads: Lead[];
   onStatusChange: (leadId: string, newStatus: LeadStatus) => void;
@@ -177,9 +170,9 @@ export function LeadsTable({ leads, onStatusChange, onDeleteLead, onLeadClick }:
             {filteredLeads.length > 0 ? (
               filteredLeads.map(lead => (
                 <TableRow 
- key={lead.id} // Add unique key
- className={onLeadClick !== undefined ? 'cursor-pointer hover:bg-muted/50' : ''}
-                  onClick={() => onLeadClick?.(lead.id)}
+                  key={lead.id}
+                  className={onLeadClick ? 'cursor-pointer hover:bg-muted/50 transition-colors' : ''}
+                  onClick={() => onLeadClick && onLeadClick(lead.id)}
                 >
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
@@ -210,7 +203,7 @@ export function LeadsTable({ leads, onStatusChange, onDeleteLead, onLeadClick }:
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={statusVariants[lead.status]} className="capitalize">
+                    <Badge variant={statusVariants[lead.status]} className="capitalize gap-1">
                       {statusIcons[lead.status]}
                       {lead.status}
                     </Badge>
@@ -247,6 +240,15 @@ export function LeadsTable({ leads, onStatusChange, onDeleteLead, onLeadClick }:
                               Mark as {status}
                             </DropdownMenuItem>
                           ))}
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onDeleteLead(lead.id)
+                          }}
+                          className="text-red-600 focus:text-red-600"
+                        >
+                          Delete Lead
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
