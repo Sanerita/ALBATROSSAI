@@ -8,7 +8,6 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { Inter } from 'next/font/google'
 import { Toaster } from 'sonner'
-import { ADKListener } from '@/services/pubsub-listener';
 import { logger } from '@/lib/logger';
 
 const inter = Inter({
@@ -33,16 +32,8 @@ export const viewport: Viewport = {
   themeColor: '#12113d',
 }
 
-// src/app/layout.tsx or initialization module
-const listener = new ADKListener(
-  process.env.GCP_PROJECT_ID!,
-  process.env.PUBSUB_SUBSCRIPTION_NAME!
-);
 
-listener.start().catch((error: Error) => {
-  logger.error('Failed to start listener', { error: error.message });
-  process.exit(1);
-});
+
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (

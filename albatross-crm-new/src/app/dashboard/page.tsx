@@ -28,7 +28,14 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  
+const [now, setNow] = useState<Date>(new Date());
+
+useEffect(() => {
+  setNow(new Date());
+}, []);
+
+useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true)
@@ -63,7 +70,7 @@ export default function DashboardPage() {
             urgency: false,
             engagement: 2,
             notes: 'Requested demo',
-            createdAt: new Date(Date.now() - 86400000),
+            createdAt: new Date(now.getTime() - 86400000),
             updatedAt: new Date()
           }
         ]
@@ -73,7 +80,7 @@ export default function DashboardPage() {
             id: uuidv4(),
             leadId: mockLeads[0].id,
             title: 'Product Demo',
-            date: new Date(Date.now() + 86400000), // Tomorrow
+            date: new Date(now.getTime() + 86400000), // Tomorrow
             duration: 45,
             notes: 'Show enterprise features',
             location: 'Zoom Meeting',
@@ -83,7 +90,7 @@ export default function DashboardPage() {
             id: uuidv4(),
             leadId: mockLeads[1].id,
             title: 'Follow-up Call',
-            date: new Date(Date.now() + 172800000), // 2 days from now
+            date: new Date(now.getTime() + 172800000), // 2 days from now
             duration: 30,
             notes: 'Discuss pricing options',
             location: 'Phone Call',
@@ -106,7 +113,7 @@ export default function DashboardPage() {
             id: uuidv4(),
             type: 'meeting_scheduled',
             message: 'Scheduled meeting with Jane Smith',
-            timestamp: new Date(Date.now() - 3600000),
+            timestamp: new Date(now.getTime() - 3600000),
             user: {
               name: 'Sam Wilson',
               avatar: '/avatars/sam.jpg'
@@ -441,7 +448,7 @@ export default function DashboardPage() {
         leads={leads}
       />
 
-      <Celebration trigger={triggerCelebration} />
+      {/* <Celebration trigger={triggerCelebration} /> */}
     </div>
   )
 }

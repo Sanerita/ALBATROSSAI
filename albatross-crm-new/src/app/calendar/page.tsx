@@ -1,41 +1,94 @@
-import { Button } from '@/components/ui/button';
+
+'use client'
+
+import { useState, useEffect } from 'react'
+import { Calendar } from '@/components/ui/calendar' // Adjust path if needed
+import { Button } from '@/components/ui/button'
+import { Meeting } from '@/types'
 
 export default function CalendarPage() {
-  // Mock meetings data
-  const meetings = [
-    { id: 1, title: 'Meeting with Acme Corp', time: '10:00 AM - 11:00 AM', date: 'Today' },
-    { id: 2, title: 'Follow-up with Sarah', time: '2:30 PM - 3:00 PM', date: 'Tomorrow' },
-    { id: 3, title: 'Product Demo', time: '11:00 AM - 12:00 PM', date: 'Friday' },
-  ];
+  const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null)
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
+
+  // Example meetings data
+  const [meetings, setMeetings] = useState<Meeting[]>([])
+
+useEffect(() => {
+  const now = new Date()
+  setMeetings([
+    {
+      id: '1',
+      title: 'Meeting with Acme Corp',
+      date: now,
+      duration: 60,
+      notes: 'Discuss Q3 strategy',
+      leadId: 'lead-001',
+      createdAt: now,
+    },
+    {
+      id: '2',
+      title: 'Follow-up with Sarah',
+      date: new Date(now.getTime() + 86400000),
+      duration: 30,
+      notes: 'Review feedback',
+      leadId: 'lead-002',
+      createdAt: now,
+    },
+    {
+      id: '3',
+      title: 'Product Demo',
+      date: new Date(now.getTime() + 2 * 86400000),
+      duration: 60,
+      notes: 'Showcase new features',
+      leadId: 'lead-003',
+      createdAt: now,
+    },
+  ])
+}, [])
+
+  const handleDateClick = (date: Date) => {
+    setSelectedDate(date)
+  }
+
+  const handleMeetingClick = (meeting: Meeting) => {
+    setSelectedMeeting(meeting)
+    alert(`Meeting selected: ${meeting.title}`)
+  }
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Meeting Calendar</h1>
-        <Button>Schedule New Meeting</Button>
-      </div>
+      <h2 className="text-2xl font-bold mb-4">Meeting Calendar</h2>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white rounded-lg shadow p-4">
-          <div className="h-96 bg-gray-100 rounded flex items-center justify-center">
-            <p className="text-gray-400">Calendar View Placeholder</p>
-          </div>
-        </div>
+      <Button className="mb-4">Schedule New Meeting</Button>
 
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Upcoming Meetings</h2>
-          {meetings.map((meeting) => (
-            <div key={meeting.id} className="border rounded-lg p-4 hover:bg-gray-50">
-              <h3 className="font-medium">{meeting.title}</h3>
-              <p className="text-sm text-gray-600">{meeting.date} • {meeting.time}</p>
-              <div className="mt-2 flex space-x-2">
-                <Button variant="outline" size="sm">Details</Button>
-                <Button variant="outline" size="sm">Reschedule</Button>
-              </div>
+      <Calendar
+        meetings={meetings}
+        onDateClick={handleDateClick}
+        onMeetingClick={handleMeetingClick}
+        selected={selectedDate}
+      />
+
+      <h3 className="text-xl font-semibold mt-6 mb-2">Upcoming Meetings</h3>
+      <div className="space-y-2">
+        {meetings.map(meeting => (
+          <div key={meeting.id} className="p-4 border rounded shadow-sm">
+            <h4 className="font-medium">{meeting.title}</h4>
+            <p>
+              {new Date(meeting.date).toDateString()} •{' '}
+              {new Date(meeting.date).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </p>
+            <div className="flex gap-2 mt-2">
+              <Button onClick={() => alert(`Details for ${meeting.title}`)}>Details</Button>
+              <Button variant="outline" onClick={() => alert(`Reschedule ${meeting.title}`)}>
+                Reschedule
+              </Button>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
     </div>
-  );
+  )
 }
